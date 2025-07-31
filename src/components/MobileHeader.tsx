@@ -1,173 +1,51 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Bars3Icon, BellIcon, UserCircleIcon } from '@heroicons/react/24/outline'
+import MobileMenu from './MobileMenu'
 
-interface MobileHeaderProps {
-  title: string
-  currentPage: string
-}
-
-export default function MobileHeader({ title, currentPage }: MobileHeaderProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const router = useRouter()
-
-  const menuItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: '🏠' },
-    { name: 'Produtos', path: '/produtos', icon: '📦' },
-    { name: 'Movimentações', path: '/movimentacoes', icon: '✏️' },
-    { name: 'Relatórios', path: '/relatorios', icon: '📊' }
-  ]
-
-  const handleNavigation = (path: string) => {
-    router.push(path)
-    setMobileMenuOpen(false)
-  }
+export default function MobileHeader() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
     <>
-      {/* Header Responsivo */}
-      <header className="bg-white shadow-lg sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-16">
+        <div className="flex items-center justify-between h-full px-4">
+          {/* Left side */}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setIsMenuOpen(true)}
+              className="p-2 rounded-md hover:bg-gray-100"
+            >
+              <Bars3Icon className="w-6 h-6 text-gray-600" />
+            </button>
             
-            {/* Logo e Menu Mobile */}
-            <div className="flex items-center space-x-4">
-              {/* Botão Menu Mobile */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
-                aria-label="Menu"
-              >
-                <div className="flex flex-col space-y-1">
-                  <span className={`block w-5 h-0.5 bg-gray-600 transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-                  <span className={`block w-5 h-0.5 bg-gray-600 transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></span>
-                  <span className={`block w-5 h-0.5 bg-gray-600 transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
-                </div>
-              </button>
-              
-              {/* Logo - sempre clicável para voltar ao dashboard */}
-              <button 
-                onClick={() => router.push('/dashboard')}
-                className="text-xl sm:text-2xl font-bold text-gray-800 hover:text-purple-600 transition-colors"
-              >
-                📦 StockPro
-              </button>
-              
-              {/* Título Desktop */}
-              <div className="hidden sm:flex items-center space-x-4">
-                <span className="text-gray-400">|</span>
-                <h2 className="text-lg lg:text-xl font-semibold text-gray-700">{title}</h2>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">SP</span>
               </div>
-            </div>
-
-            {/* Navegação Desktop - SEM scroll horizontal */}
-            <div className="hidden md:flex space-x-4">
-              {currentPage !== '/dashboard' && (
-                <button 
-                  onClick={() => router.push('/dashboard')}
-                  className="text-purple-600 hover:text-purple-800 font-medium transition-colors"
-                >
-                  🏠 Dashboard
-                </button>
-              )}
-              {currentPage !== '/produtos' && (
-                <button 
-                  onClick={() => router.push('/produtos')}
-                  className="text-purple-600 hover:text-purple-800 font-medium transition-colors"
-                >
-                  📦 Produtos
-                </button>
-              )}
-              {currentPage !== '/movimentacoes' && (
-                <button 
-                  onClick={() => router.push('/movimentacoes')}
-                  className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                >
-                  ✏️ Movimentações
-                </button>
-              )}
-              {currentPage !== '/relatorios' && (
-                <button 
-                  onClick={() => router.push('/relatorios')}
-                  className="text-green-600 hover:text-green-800 font-medium transition-colors"
-                >
-                  📊 Relatórios
-                </button>
-              )}
+              <span className="font-bold text-gray-800">StockPro</span>
             </div>
           </div>
 
-          {/* Título Mobile - aparece abaixo do header */}
-          <div className="sm:hidden pb-3 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-700">{title}</h2>
+          {/* Right side */}
+          <div className="flex items-center space-x-4">
+            <button className="p-2 rounded-md hover:bg-gray-100 relative">
+              <BellIcon className="w-6 h-6 text-gray-600" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            
+            <button className="p-2 rounded-md hover:bg-gray-100">
+              <UserCircleIcon className="w-6 h-6 text-gray-600" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Menu Mobile Overlay */}
-      {mobileMenuOpen && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          
-          {/* Menu Lateral */}
-          <div className="fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out md:hidden">
-            
-            {/* Header do Menu */}
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold">📦 StockPro</h2>
-                  <p className="text-purple-100 text-sm">Sistema de Gestão</p>
-                </div>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center hover:bg-opacity-30 transition-colors"
-                >
-                  <span className="text-white text-lg">×</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Lista de Menu */}
-            <div className="py-4">
-              {menuItems.map((item) => {
-                const isActive = currentPage === item.path
-                
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => handleNavigation(item.path)}
-                    className={`w-full flex items-center space-x-4 px-6 py-4 text-left hover:bg-gray-50 transition-colors duration-200 ${
-                      isActive ? 'bg-purple-50 border-r-4 border-purple-600' : ''
-                    }`}
-                  >
-                    <span className="text-2xl">{item.icon}</span>
-                    <div>
-                      <span className={`font-medium ${isActive ? 'text-purple-600' : 'text-gray-700'}`}>
-                        {item.name}
-                      </span>
-                      {isActive && (
-                        <div className="text-xs text-purple-500">Página atual</div>
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Footer do Menu */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gray-50 border-t">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Versão Mobile</p>
-                <p className="text-xs text-gray-500">StockPro v1.0</p>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Mobile Menu */}
+      <MobileMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+      />
     </>
   )
 }
