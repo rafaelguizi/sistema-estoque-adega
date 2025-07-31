@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToastContext } from '@/components/ToastProvider'
 import LoadingButton from '@/components/LoadingButton'
 import MobileHeader from '@/components/MobileHeader'
 
@@ -32,6 +33,7 @@ interface Movimentacao {
 
 export default function Dashboard() {
   const router = useRouter()
+  const toast = useToastContext()
   
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([])

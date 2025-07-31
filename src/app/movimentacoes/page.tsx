@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToastContext } from '@/components/ToastProvider'
 import { useLoading } from '@/hooks/useLoading'
 import LoadingButton from '@/components/LoadingButton'
@@ -32,6 +33,7 @@ interface Movimentacao {
 }
 
 export default function Movimentacoes() {
+  const router = useRouter()
   const toast = useToastContext()
   const { isLoading, withLoading } = useLoading()
   
@@ -54,7 +56,11 @@ export default function Movimentacoes() {
   const [filtroProduto, setFiltroProduto] = useState('')
 
   // Carregar dados
-  const carregarDados = useCallback(async () => {
+  useEffect(() => {
+    carregarDados()
+  }, [])
+
+  const carregarDados = async () => {
     await withLoading('carregando', async () => {
       await new Promise(resolve => setTimeout(resolve, 1000))
       
@@ -80,11 +86,7 @@ export default function Movimentacoes() {
         }
       }
     })
-  }, [withLoading, toast])
-
-  useEffect(() => {
-    carregarDados()
-  }, [carregarDados])
+  }
 
   const salvarMovimentacoes = (novasMovimentacoes: Movimentacao[]) => {
     localStorage.setItem('stockpro_movimentacoes', JSON.stringify(novasMovimentacoes))
@@ -352,7 +354,7 @@ export default function Movimentacoes() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
               <span className="text-blue-800 font-medium text-sm sm:text-base">
-                �� {movimentacoesFiltradas.length} de {movimentacoes.length} movimentações
+                📊 {movimentacoesFiltradas.length} de {movimentacoes.length} movimentações
               </span>
               {(busca || filtroTipo || filtroData || filtroProduto) && (
                 <span className="text-blue-600 text-xs sm:text-sm">🔍 Filtros ativos</span>
@@ -421,7 +423,7 @@ export default function Movimentacoes() {
                       }`}
                       disabled={isLoading('salvando')}
                     >
-                      📥 Entrada
+                      �� Entrada
                     </button>
                     <button
                       type="button"
@@ -433,7 +435,7 @@ export default function Movimentacoes() {
                       }`}
                       disabled={isLoading('salvando')}
                     >
-                      📤 Saída
+                      �� Saída
                     </button>
                   </div>
                 </div>
