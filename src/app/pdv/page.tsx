@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToastContext } from '@/components/ToastProvider'
 import { useLoading } from '@/hooks/useLoading'
@@ -53,18 +53,7 @@ export default function PDV() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Carregar produtos
-  useEffect(() => {
-    carregarProdutos()
-  }, [])
-
-  // Auto-focus no input de código de barras
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [])
-
-  const carregarProdutos = async () => {
+  const carregarProdutos = useCallback(async () => {
     await withLoading('carregando', async () => {
       await new Promise(resolve => setTimeout(resolve, 500))
       
@@ -73,7 +62,7 @@ export default function PDV() {
         try {
           const produtosCarregados = JSON.parse(produtosSalvos)
           // Migrar produtos antigos sem código de barras
-          const produtosMigrados = produtosCarregados.map((produto: any) => ({
+          const produtosMigrados = produtosCarregados.map((produto: Produto) => ({
             ...produto,
             codigoBarras: produto.codigoBarras || ''
           }))
@@ -84,7 +73,18 @@ export default function PDV() {
         }
       }
     })
-  }
+  }, [withLoading, toast])
+
+  useEffect(() => {
+    carregarProdutos()
+  }, [carregarProdutos])
+
+  // Auto-focus no input de código de barras
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [])
 
   // Buscar produto por código de barras
   const buscarProdutoPorCodigoBarras = (codigoBarras: string) => {
@@ -158,7 +158,7 @@ export default function PDV() {
   }
 
   // Handle do input de código de barras
-  const handleCodigoBarrasSubmit = (e: React.FormEvent) => {
+  const handleCodigoBarrasSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     processarCodigoBarras(codigoBarrasInput)
   }
@@ -509,7 +509,7 @@ export default function PDV() {
                     <>
                       {/* Lista de Itens - Mobile */}
                       <div className="block sm:hidden divide-y divide-gray-200">
-                        {itensVenda.map((item, index) => (
+                        {itensVenda.map((item) => (
                           <div key={item.produto.id} className="p-4">
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
