@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToastContext } from '@/components/ToastProvider'
 import { useLoading } from '@/hooks/useLoading'
@@ -24,7 +24,7 @@ export default function Produtos() {
   const router = useRouter()
   const toast = useToastContext()
   const { isLoading, withLoading } = useLoading()
-  
+
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -33,7 +33,7 @@ export default function Produtos() {
   const [showScanner, setShowScanner] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  
+
   // Estados do formulário
   const [formData, setFormData] = useState({
     nome: '',
@@ -68,20 +68,16 @@ export default function Produtos() {
   ]
 
   // Carregar produtos
-  useEffect(() => {
-    carregarProdutos()
-  }, [])
-
-  const carregarProdutos = async () => {
+  const carregarProdutos = useCallback(async () => {
     await withLoading('carregando', async () => {
       await new Promise(resolve => setTimeout(resolve, 800))
-      
+
       const produtosSalvos = localStorage.getItem('stockpro_produtos')
       if (produtosSalvos) {
         try {
           const produtosCarregados = JSON.parse(produtosSalvos)
           // Migrar produtos antigos sem código de barras
-          const produtosMigrados = produtosCarregados.map((produto: any) => ({
+          const produtosMigrados = produtosCarregados.map((produto: Produto) => ({
             ...produto,
             codigoBarras: produto.codigoBarras || ''
           }))
@@ -92,7 +88,11 @@ export default function Produtos() {
         }
       }
     })
-  }
+  }, [withLoading, toast])
+
+  useEffect(() => {
+    carregarProdutos()
+  }, [carregarProdutos])
 
   const salvarProdutos = (novosProdutos: Produto[]) => {
     localStorage.setItem('stockpro_produtos', JSON.stringify(novosProdutos))
@@ -110,26 +110,26 @@ export default function Produtos() {
   const obterTodasCategorias = () => {
     const categoriasPersonalizadas = [...new Set(produtos.map(p => p.categoria))].filter(Boolean)
     const todasCategorias = [...new Set([...categoriasPadrao, ...categoriasPersonalizadas])]
-    
+
     // Filtrar categorias baseado na busca
     if (buscaCategoria) {
-      return todasCategorias.filter(cat => 
+      return todasCategorias.filter(cat =>
         cat.toLowerCase().includes(buscaCategoria.toLowerCase())
       )
     }
-    
+
     return todasCategorias.sort()
   }
 
   // Iniciar scanner de código de barras
   const iniciarScanner = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
           facingMode: 'environment' // Câmera traseira
-        } 
+        }
       })
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         setShowScanner(true)
@@ -182,7 +182,7 @@ export default function Produtos() {
       return
     }
 
-    const categoriaExiste = obterTodasCategorias().some(cat => 
+    const categoriaExiste = obterTodasCategorias().some(cat =>
       cat.toLowerCase() === novaCategoria.toLowerCase()
     )
 
@@ -193,7 +193,7 @@ export default function Produtos() {
 
     await withLoading('adicionando-categoria', async () => {
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       setFormData({...formData, categoria: novaCategoria})
       setShowNovaCategoria(false)
       setNovaCategoria('')
@@ -202,7 +202,7 @@ export default function Produtos() {
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     await withLoading('salvando', async () => {
@@ -231,7 +231,7 @@ export default function Produtos() {
 
       // Verificar código de barras duplicado
       if (formData.codigoBarras) {
-        const codigoBarrasExiste = produtos.some(p => 
+        const codigoBarrasExiste = produtos.some(p =>
           p.codigoBarras === formData.codigoBarras && p.id !== editingId
         )
 
@@ -243,7 +243,7 @@ export default function Produtos() {
 
       const novoProduto: Produto = {
         id: editingId || Date.now(),
-        codigo: editingId ? 
+        codigo: editingId ?
           produtos.find(p => p.id === editingId)?.codigo || gerarProximoCodigo() :
           gerarProximoCodigo(),
         nome: formData.nome,
@@ -254,13 +254,13 @@ export default function Produtos() {
         valorVenda,
         estoque,
         ativo: true,
-        dataCadastro: editingId ? 
+        dataCadastro: editingId ?
           produtos.find(p => p.id === editingId)?.dataCadastro || new Date().toLocaleDateString('pt-BR') :
           new Date().toLocaleDateString('pt-BR')
       }
 
       if (editingId) {
-        const produtosAtualizados = produtos.map(p => 
+        const produtosAtualizados = produtos.map(p =>
           p.id === editingId ? novoProduto : p
         )
         salvarProdutos(produtosAtualizados)
@@ -277,7 +277,7 @@ export default function Produtos() {
   const handleEdit = async (produto: Produto) => {
     await withLoading('carregando-produto', async () => {
       await new Promise(resolve => setTimeout(resolve, 400))
-      
+
       setFormData({
         nome: produto.nome,
         categoria: produto.categoria,
@@ -296,7 +296,7 @@ export default function Produtos() {
     if (confirm('Tem certeza que deseja excluir este produto?')) {
       await withLoading('excluindo', async () => {
         await new Promise(resolve => setTimeout(resolve, 600))
-        
+
         const novosProdutos = produtos.filter(p => p.id !== id)
         salvarProdutos(novosProdutos)
         toast.success('Produto excluído!', 'Produto removido com sucesso!')
@@ -307,12 +307,12 @@ export default function Produtos() {
   const toggleStatus = async (id: number) => {
     await withLoading('alterando-status', async () => {
       await new Promise(resolve => setTimeout(resolve, 500))
-      
-      const produtosAtualizados = produtos.map(p => 
+
+      const produtosAtualizados = produtos.map(p =>
         p.id === id ? { ...p, ativo: !p.ativo } : p
       )
       salvarProdutos(produtosAtualizados)
-      
+
       const produto = produtos.find(p => p.id === id)
       const novoStatus = !produto?.ativo
       toast.success(
@@ -328,12 +328,12 @@ export default function Produtos() {
                       produto.codigo.toLowerCase().includes(busca.toLowerCase()) ||
                       produto.categoria.toLowerCase().includes(busca.toLowerCase()) ||
                       produto.codigoBarras.toLowerCase().includes(busca.toLowerCase())
-    
+
     const matchCategoria = filtroCategoria === '' || produto.categoria === filtroCategoria
-    const matchStatus = filtroStatus === '' || 
+    const matchStatus = filtroStatus === '' ||
                        (filtroStatus === 'ativo' && produto.ativo) ||
                        (filtroStatus === 'inativo' && !produto.ativo)
-    
+
     return matchBusca && matchCategoria && matchStatus
   })
 
@@ -345,7 +345,7 @@ export default function Produtos() {
       <MobileHeader title="Gestão de Produtos" currentPage="/produtos" />
 
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-        
+
         {/* Loading de carregamento inicial */}
         {isLoading('carregando') && (
           <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12 mb-6">
@@ -386,7 +386,7 @@ export default function Produtos() {
         {!isLoading('carregando') && (
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg mb-6">
             <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4">🔍 Filtros</h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">Buscar</label>
@@ -398,7 +398,7 @@ export default function Produtos() {
                   className="w-full border-2 border-gray-400 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm placeholder-gray-600 text-sm sm:text-base"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">Categoria</label>
                 <select
@@ -412,7 +412,7 @@ export default function Produtos() {
                   ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">Status</label>
                 <select
@@ -425,7 +425,7 @@ export default function Produtos() {
                   <option value="inativo">❌ Inativos</option>
                 </select>
               </div>
-              
+
               <div className="flex items-end">
                 <LoadingButton
                   onClick={() => {
@@ -483,7 +483,7 @@ export default function Produtos() {
               </div>
 
               <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
-                
+
                 {/* Mostrar código apenas na edição */}
                 {editingId && (
                   <div className="bg-gray-50 p-3 rounded-lg border">
@@ -563,7 +563,7 @@ export default function Produtos() {
                   <label className="block text-sm font-bold text-gray-800 mb-2">
                     Categoria *
                   </label>
-                  
+
                   {/* Campo de busca de categoria */}
                   <input
                     type="text"
@@ -592,7 +592,7 @@ export default function Produtos() {
                         {categoria}
                       </button>
                     ))}
-                    
+
                     {/* Opção para adicionar nova categoria */}
                     {!showNovaCategoria && (
                       <button
@@ -782,7 +782,7 @@ export default function Produtos() {
                   </svg>
                 </button>
               </div>
-              
+
               <div className="p-4">
                 <div className="relative">
                   <video
@@ -792,13 +792,13 @@ export default function Produtos() {
                     className="w-full h-64 bg-black rounded-lg"
                   />
                   <canvas ref={canvasRef} className="hidden" />
-                  
+
                   {/* Overlay de mira */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="border-2 border-red-500 w-48 h-24 rounded-lg"></div>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 text-center">
                   <p className="text-sm text-gray-600 mb-4">
                     Aponte a câmera para o código de barras
@@ -829,7 +829,7 @@ export default function Produtos() {
                 <div className="text-4xl sm:text-6xl mb-4">📦</div>
                 <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Nenhum produto encontrado</h3>
                 <p className="text-gray-500 mb-4 text-sm sm:text-base">
-                  {produtos.length === 0 
+                  {produtos.length === 0
                     ? 'Comece cadastrando seu primeiro produto.'
                     : 'Tente ajustar os filtros para encontrar os produtos desejados.'
                   }
@@ -855,14 +855,14 @@ export default function Produtos() {
                             <div className="flex items-center space-x-2 mb-2">
                               <h4 className="text-sm font-bold text-gray-900 truncate">{produto.nome}</h4>
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                produto.ativo 
-                                  ? 'bg-green-100 text-green-800' 
+                                produto.ativo
+                                  ? 'bg-green-100 text-green-800'
                                   : 'bg-red-100 text-red-800'
                               }`}>
                                 {produto.ativo ? '✅ Ativo' : '❌ Inativo'}
                               </span>
                             </div>
-                            
+
                             <div className="space-y-1 text-xs text-gray-600">
                               <p><span className="font-medium">Código:</span> #{produto.codigo}</p>
                               {produto.codigoBarras && (
@@ -889,7 +889,7 @@ export default function Produtos() {
                                   ✅ Estoque normal
                                 </span>
                               )}
-                              
+
                               {produto.codigoBarras && (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                   📱 Com código de barras
@@ -1011,8 +1011,8 @@ export default function Produtos() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              produto.ativo 
-                                ? 'bg-green-100 text-green-800' 
+                              produto.ativo
+                                ? 'bg-green-100 text-green-800'
                                 : 'bg-red-100 text-red-800'
                             }`}>
                               {produto.ativo ? '✅ Ativo' : '❌ Inativo'}
@@ -1065,22 +1065,22 @@ export default function Produtos() {
                 <div className="text-xl sm:text-2xl font-bold text-blue-600">{produtos.filter(p => p.ativo).length}</div>
                 <div className="text-blue-600 text-xs sm:text-sm font-medium">Produtos Ativos</div>
               </div>
-              
+
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-xl sm:text-2xl font-bold text-green-600">{produtos.filter(p => p.codigoBarras).length}</div>
                 <div className="text-green-600 text-xs sm:text-sm font-medium">Com Código de Barras</div>
               </div>
-              
+
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-xl sm:text-2xl font-bold text-red-600">{produtos.filter(p => p.estoque === 0).length}</div>
                 <div className="text-red-600 text-xs sm:text-sm font-medium">Sem Estoque</div>
               </div>
-              
+
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-xl sm:text-2xl font-bold text-yellow-600">{produtos.filter(p => p.estoque <= p.estoqueMinimo && p.estoque > 0).length}</div>
                 <div className="text-yellow-600 text-xs sm:text-sm font-medium">Estoque Baixo</div>
               </div>
-              
+
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-lg sm:text-xl font-bold text-purple-600">
                   R\$ {produtos.filter(p => p.ativo).reduce((total, p) => total + (p.estoque * p.valorCompra), 0).toFixed(2)}
@@ -1095,7 +1095,7 @@ export default function Produtos() {
         <div className="mt-6 sm:mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <div className="text-xl sm:text-2xl">��</div>
+              <div className="text-xl sm:text-2xl">💡</div>
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-blue-800">

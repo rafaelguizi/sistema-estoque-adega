@@ -34,7 +34,7 @@ interface Movimentacao {
 export default function Dashboard() {
   const router = useRouter()
   const toast = useToastContext()
-  
+
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,10 +45,10 @@ export default function Dashboard() {
 
   const carregarDados = async () => {
     setLoading(true)
-    
+
     // Simular carregamento
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     // Carregar produtos
     const produtosSalvos = localStorage.getItem('stockpro_produtos')
     if (produtosSalvos) {
@@ -77,21 +77,21 @@ export default function Dashboard() {
     const agora = new Date()
     const anoAtual = agora.getFullYear()
     const mesAtual = agora.getMonth() // 0-11
-    
+
     // Filtrar vendas do mês atual
     const vendasMesAtual = movimentacoes.filter(mov => {
       if (mov.tipo !== 'saida') return false
-      
+
       const [dia, mes, ano] = mov.data.split('/')
       const dataMovimentacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia))
-      
-      return dataMovimentacao.getFullYear() === anoAtual && 
+
+      return dataMovimentacao.getFullYear() === anoAtual &&
              dataMovimentacao.getMonth() === mesAtual
     })
-    
+
     const totalFaturamento = vendasMesAtual.reduce((total, mov) => total + mov.valorTotal, 0)
     const quantidadeVendas = vendasMesAtual.length
-    
+
     return {
       totalFaturamento,
       quantidadeVendas,
@@ -103,7 +103,7 @@ export default function Dashboard() {
   const produtosAtivos = produtos.filter(p => p.ativo)
   const produtosEstoqueBaixo = produtosAtivos.filter(p => p.estoque <= p.estoqueMinimo)
   const produtosEstoqueZerado = produtosAtivos.filter(p => p.estoque === 0)
-  
+
   // Faturamento mensal
   const faturamentoMensal = calcularFaturamentoMensal()
 
@@ -117,7 +117,7 @@ export default function Dashboard() {
       <MobileHeader title="Dashboard Principal" currentPage="/dashboard" />
 
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-        
+
         {/* Loading State */}
         {loading && (
           <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12 mb-6">
@@ -135,7 +135,7 @@ export default function Dashboard() {
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-4 sm:p-6 mb-6 text-white">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
                 <div>
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Bem-vindo ao StockPro! 🎉</h1>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Bem-vindo ao StockPro! 🚀</h1>
                   <p className="text-purple-100 mt-1 text-sm sm:text-base">
                     Gerencie seu estoque de forma inteligente e eficiente
                   </p>
@@ -155,7 +155,7 @@ export default function Dashboard() {
                     size="sm"
                     className="w-full sm:w-auto bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white"
                   >
-                    📝 Nova Movimentação
+                    📦 Nova Movimentação
                   </LoadingButton>
                 </div>
               </div>
@@ -163,7 +163,7 @@ export default function Dashboard() {
 
             {/* Cards de Estatísticas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              
+
               {/* Total de Produtos */}
               <div className="bg-gradient-to-r from-blue-400 to-blue-600 p-4 sm:p-6 rounded-lg shadow-lg text-white transform hover:scale-105 transition-all duration-200">
                 <div className="flex items-center justify-between">
@@ -217,7 +217,7 @@ export default function Dashboard() {
             {faturamentoMensal.totalFaturamento > 0 && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                 <div className="flex items-start space-x-3">
-                  <div className="text-2xl">📈</div>
+                  <div className="text-2xl">📊</div>
                   <div>
                     <h3 className="text-sm font-medium text-green-800">
                       Faturamento de {faturamentoMensal.mesAno}
@@ -239,7 +239,7 @@ export default function Dashboard() {
                 <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
                   🚨 Alertas de Estoque
                 </h3>
-                
+
                 <div className="space-y-4">
                   {/* Produtos com estoque zerado */}
                   {produtosEstoqueZerado.length > 0 && (
@@ -294,7 +294,7 @@ export default function Dashboard() {
 
             {/* Ações Rápidas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              
+
               {/* Gestão de Produtos */}
               <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow duration-200">
                 <div className="text-center">
@@ -317,7 +317,7 @@ export default function Dashboard() {
               {/* Movimentações */}
               <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow duration-200">
                 <div className="text-center">
-                  <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">✏️</div>
+                  <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">↔️</div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Movimentações</h3>
                   <p className="text-gray-600 text-sm mb-4">
                     Registre entradas e saídas do estoque
@@ -336,7 +336,7 @@ export default function Dashboard() {
               {/* Relatórios */}
               <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow duration-200 sm:col-span-2 lg:col-span-1">
                 <div className="text-center">
-                  <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">📊</div>
+                  <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">📈</div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Relatórios</h3>
                   <p className="text-gray-600 text-sm mb-4">
                     Analise vendas e performance do estoque
@@ -355,26 +355,26 @@ export default function Dashboard() {
 
             {/* Resumo do Estoque */}
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">📈 Resumo do Estoque</h3>
-              
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">📊 Resumo do Estoque</h3>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-lg">
                   <p className="text-2xl sm:text-3xl font-bold text-blue-600">{produtosAtivos.length}</p>
                   <p className="text-blue-600 text-sm font-medium">Produtos Ativos</p>
                 </div>
-                
+
                 <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
                   <p className="text-lg sm:text-xl font-bold text-green-600">
                     R\$ {valorTotalEstoque.toFixed(2)}
                   </p>
                   <p className="text-green-600 text-sm font-medium">Valor do Estoque</p>
                 </div>
-                
+
                 <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg">
                   <p className="text-2xl sm:text-3xl font-bold text-purple-600">{movimentacoes.length}</p>
                   <p className="text-purple-600 text-sm font-medium">Total Movimentações</p>
                 </div>
-                
+
                 <div className="text-center p-3 sm:p-4 bg-orange-50 rounded-lg">
                   <p className="text-2xl sm:text-3xl font-bold text-orange-600">
                     {Math.round(((produtosAtivos.length - produtosEstoqueBaixo.length) / Math.max(produtosAtivos.length, 1)) * 100)}%
@@ -388,7 +388,7 @@ export default function Dashboard() {
             <div className="mt-6 sm:mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <div className="text-xl sm:text-2xl">��</div>
+                  <div className="text-xl sm:text-2xl">💡</div>
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-blue-800">
