@@ -116,9 +116,9 @@ export default function RegisterPage() {
                 onChange={(e) => setFormData({...formData, plan: e.target.value})}
                 className="block w-full px-4 py-3 text-gray-900 bg-gray-50 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-200"
               >
-                <option value="BASIC">💎 Básico - R\$ 29/mês</option>
-                <option value="PRO">🚀 Profissional - R\$ 59/mês</option>
-                <option value="ENTERPRISE">⭐ Enterprise - R\$ 99/mês</option>
+                <option value="BASIC">💎 Básico - R$ 29/mês</option>
+                <option value="PRO">🚀 Profissional - R$ 59/mês</option>
+                <option value="ENTERPRISE">⭐ Enterprise - R$ 99/mês</option>
               </select>
             </div>
           </div>

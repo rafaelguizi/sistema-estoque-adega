@@ -450,7 +450,7 @@ export default function Relatorios() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-green-100 text-xs sm:text-sm">Total de Vendas</p>
-                  <p className="text-lg sm:text-2xl font-bold">R\$ {estatisticas.totalVendas.toFixed(2)}</p>
+                  <p className="text-lg sm:text-2xl font-bold">R$ {estatisticas.totalVendas.toFixed(2)}</p>
                   <p className="text-green-100 text-xs">{estatisticas.numeroVendas} transações</p>
                 </div>
                 <div className="text-2xl sm:text-3xl ml-2">💰</div>
@@ -462,7 +462,7 @@ export default function Relatorios() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-blue-100 text-xs sm:text-sm">Total de Compras</p>
-                  <p className="text-lg sm:text-2xl font-bold">R\$ {estatisticas.totalCompras.toFixed(2)}</p>
+                  <p className="text-lg sm:text-2xl font-bold">R$ {estatisticas.totalCompras.toFixed(2)}</p>
                   <p className="text-blue-100 text-xs">Investimento</p>
                 </div>
                 <div className="text-2xl sm:text-3xl ml-2">🛒</div>
@@ -474,7 +474,7 @@ export default function Relatorios() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-indigo-100 text-xs sm:text-sm">Valor do Estoque</p>
-                  <p className="text-lg sm:text-2xl font-bold">R\$ {(() => {
+                  <p className="text-lg sm:text-2xl font-bold">R$ {(() => {
                     const valorEstoque = produtos.filter(p => p.ativo).reduce((total, produto) => {
                       return total + (produto.estoque * produto.valorCompra)
                     }, 0)
@@ -492,7 +492,7 @@ export default function Relatorios() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-purple-100 text-xs sm:text-sm">Lucro Líquido</p>
-                    <p className="text-lg sm:text-2xl font-bold">R\$ {estatisticas.lucroReal.toFixed(2)}</p>
+                    <p className="text-lg sm:text-2xl font-bold">R$ {estatisticas.lucroReal.toFixed(2)}</p>
                     <p className="text-purple-100 text-xs">
                       {estatisticas.totalVendas > 0 ? ((estatisticas.lucroReal / estatisticas.totalVendas) * 100).toFixed(1) : '0.0'}% margem
                     </p>
@@ -540,11 +540,11 @@ export default function Relatorios() {
                       height: `${Math.max((dado.vendas / maxVenda) * 160, 4)}px`,
                       minHeight: '4px'
                     }}
-                    title={`${dado.dia}: R\$ ${dado.vendas.toFixed(2)}`}
+                    title={`${dado.dia}: R$ ${dado.vendas.toFixed(2)}`}
                   ></div>
                   <div className="text-xs text-gray-600 mt-2 text-center">
                     <div className="text-xs sm:text-sm">{dado.dia}</div>
-                    <div className="font-bold text-purple-600 text-xs">R\$ {dado.vendas.toFixed(0)}</div>
+                    <div className="font-bold text-purple-600 text-xs">R$ {dado.vendas.toFixed(0)}</div>
                   </div>
                 </div>
               ))}
@@ -584,7 +584,7 @@ export default function Relatorios() {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-gray-900 text-sm sm:text-base">{produto.quantidade} un.</p>
-                        <p className="text-xs sm:text-sm text-green-600">R\$ {produto.valor.toFixed(2)}</p>
+                        <p className="text-xs sm:text-sm text-green-600">R$ {produto.valor.toFixed(2)}</p>
                       </div>
                     </div>
                   ))}
@@ -611,7 +611,7 @@ export default function Relatorios() {
                         <div key={categoria} className="space-y-1">
                           <div className="flex justify-between text-xs sm:text-sm">
                             <span className="font-medium text-gray-700 truncate">{categoria}</span>
-                            <span className="text-gray-900 font-bold ml-2">R\$ {valor.toFixed(2)}</span>
+                            <span className="text-gray-900 font-bold ml-2">R$ {valor.toFixed(2)}</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 

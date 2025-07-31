@@ -257,7 +257,7 @@ export default function PDV() {
         const totalVenda = calcularTotalVenda()
         toast.success(
           'Venda finalizada!', 
-          `Total: R\$ ${totalVenda.toFixed(2)} - ${itensVenda.length} itens`
+          `Total: R$ ${totalVenda.toFixed(2)} - ${itensVenda.length} itens`
         )
 
         // Refocar no input
@@ -516,8 +516,8 @@ export default function PDV() {
                                 <h4 className="text-sm font-bold text-gray-900 truncate">{item.produto.nome}</h4>
                                 <div className="space-y-1 text-xs text-gray-600 mt-1">
                                   <p><span className="font-medium">Código:</span> #{item.produto.codigo}</p>
-                                  <p><span className="font-medium">Preço unit.:</span> R\$ {item.valorUnitario.toFixed(2)}</p>
-                                  <p><span className="font-medium">Subtotal:</span> R\$ {item.valorTotal.toFixed(2)}</p>
+                                  <p><span className="font-medium">Preço unit.:</span> R$ {item.valorUnitario.toFixed(2)}</p>
+                                  <p><span className="font-medium">Subtotal:</span> R$ {item.valorTotal.toFixed(2)}</p>
                                 </div>
                                 
                                 {/* Controles de quantidade */}
@@ -584,7 +584,7 @@ export default function PDV() {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                  R\$ {item.valorUnitario.toFixed(2)}
+                                  R$ {item.valorUnitario.toFixed(2)}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center space-x-2">
@@ -610,7 +610,7 @@ export default function PDV() {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                  R\$ {item.valorTotal.toFixed(2)}
+                                  R$ {item.valorTotal.toFixed(2)}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                   <button
@@ -633,7 +633,7 @@ export default function PDV() {
                             Total da Venda:
                           </div>
                           <div className="text-2xl font-bold text-green-600">
-                            R\$ {calcularTotalVenda().toFixed(2)}
+                            R$ {calcularTotalVenda().toFixed(2)}
                           </div>
                         </div>
                         <div className="text-sm text-gray-600 mt-1">

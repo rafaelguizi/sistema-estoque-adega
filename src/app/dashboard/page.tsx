@@ -145,7 +145,7 @@ export default function Dashboard() {
                     onClick={() => router.push('/produtos')}
                     variant="secondary"
                     size="sm"
-                    className="w-full sm:w-auto bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                    className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
                   >
                     ➕ Novo Produto
                   </LoadingButton>
@@ -153,7 +153,7 @@ export default function Dashboard() {
                     onClick={() => router.push('/movimentacoes')}
                     variant="secondary"
                     size="sm"
-                    className="w-full sm:w-auto bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                    className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
                   >
                     📦 Nova Movimentação
                   </LoadingButton>
@@ -205,7 +205,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-green-100 text-xs sm:text-sm">Faturamento ({faturamentoMensal.mesAno})</p>
-                    <p className="text-lg sm:text-xl font-bold">R\$ {faturamentoMensal.totalFaturamento.toFixed(2)}</p>
+                    <p className="text-lg sm:text-xl font-bold">R$ {faturamentoMensal.totalFaturamento.toFixed(2)}</p>
                     <p className="text-green-100 text-xs">{faturamentoMensal.quantidadeVendas} vendas</p>
                   </div>
                   <div className="text-2xl sm:text-3xl ml-2">💰</div>
@@ -223,9 +223,9 @@ export default function Dashboard() {
                       Faturamento de {faturamentoMensal.mesAno}
                     </h3>
                     <div className="mt-2 text-xs sm:text-sm text-green-700 space-y-1">
-                      <p>• <strong>Total faturado:</strong> R\$ {faturamentoMensal.totalFaturamento.toFixed(2)}</p>
+                      <p>• <strong>Total faturado:</strong> R$ {faturamentoMensal.totalFaturamento.toFixed(2)}</p>
                       <p>• <strong>Número de vendas:</strong> {faturamentoMensal.quantidadeVendas} transações</p>
-                      <p>• <strong>Ticket médio:</strong> R\$ {faturamentoMensal.quantidadeVendas > 0 ? (faturamentoMensal.totalFaturamento / faturamentoMensal.quantidadeVendas).toFixed(2) : '0.00'}</p>
+                      <p>• <strong>Ticket médio:</strong> R$ {faturamentoMensal.quantidadeVendas > 0 ? (faturamentoMensal.totalFaturamento / faturamentoMensal.quantidadeVendas).toFixed(2) : '0.00'}</p>
                       <p className="text-green-600 font-medium">💡 O faturamento zera automaticamente todo dia 1º do mês</p>
                     </div>
                   </div>
@@ -365,7 +365,7 @@ export default function Dashboard() {
 
                 <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
                   <p className="text-lg sm:text-xl font-bold text-green-600">
-                    R\$ {valorTotalEstoque.toFixed(2)}
+                    R$ {valorTotalEstoque.toFixed(2)}
                   </p>
                   <p className="text-green-600 text-sm font-medium">Valor do Estoque</p>
                 </div>
