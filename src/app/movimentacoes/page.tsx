@@ -1,6 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
 import { useToastContext } from '@/components/ToastProvider'
 import { useLoading } from '@/hooks/useLoading'
 import LoadingButton from '@/components/LoadingButton'
@@ -33,7 +32,6 @@ interface Movimentacao {
 }
 
 export default function Movimentacoes() {
-  const router = useRouter()
   const toast = useToastContext()
   const { isLoading, withLoading } = useLoading()
   
@@ -56,11 +54,7 @@ export default function Movimentacoes() {
   const [filtroProduto, setFiltroProduto] = useState('')
 
   // Carregar dados
-  useEffect(() => {
-    carregarDados()
-  }, [])
-
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     await withLoading('carregando', async () => {
       await new Promise(resolve => setTimeout(resolve, 1000))
       
@@ -86,7 +80,11 @@ export default function Movimentacoes() {
         }
       }
     })
-  }
+  }, [withLoading, toast])
+
+  useEffect(() => {
+    carregarDados()
+  }, [carregarDados])
 
   const salvarMovimentacoes = (novasMovimentacoes: Movimentacao[]) => {
     localStorage.setItem('stockpro_movimentacoes', JSON.stringify(novasMovimentacoes))
@@ -354,7 +352,7 @@ export default function Movimentacoes() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
               <span className="text-blue-800 font-medium text-sm sm:text-base">
-                📊 {movimentacoesFiltradas.length} de {movimentacoes.length} movimentações
+                �� {movimentacoesFiltradas.length} de {movimentacoes.length} movimentações
               </span>
               {(busca || filtroTipo || filtroData || filtroProduto) && (
                 <span className="text-blue-600 text-xs sm:text-sm">🔍 Filtros ativos</span>
@@ -488,7 +486,7 @@ export default function Movimentacoes() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Tipo:</span>
-                            <span className="font-bold">{formData.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}</span>
+                            <span className="font-bold">{formData.tipo === 'entrada' ? '📥 Entrada' : '�� Saída'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Quantidade:</span>
@@ -496,11 +494,11 @@ export default function Movimentacoes() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Valor unitário:</span>
-                            <span className="font-bold">R$ {valorUnitario.toFixed(2)}</span>
+                            <span className="font-bold">R\$ {valorUnitario.toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between border-t pt-1">
                             <span className="text-gray-600">Valor total:</span>
-                            <span className="font-bold text-blue-600">R$ {valorTotal.toFixed(2)}</span>
+                            <span className="font-bold text-blue-600">R\$ {valorTotal.toFixed(2)}</span>
                           </div>
                           <div className="text-xs text-gray-500 mt-2">
                             💡 Valor automático: {formData.tipo === 'entrada' ? 'Preço de compra' : 'Preço de venda'} do produto
@@ -589,8 +587,8 @@ export default function Movimentacoes() {
                             <div className="space-y-1 text-xs text-gray-600">
                               <p><span className="font-medium">Código:</span> #{mov.codigo}</p>
                               <p><span className="font-medium">Quantidade:</span> {mov.quantidade} unidades</p>
-                              <p><span className="font-medium">Valor unitário:</span> R$ {mov.valorUnitario.toFixed(2)}</p>
-                              <p><span className="font-medium">Valor total:</span> R$ {mov.valorTotal.toFixed(2)}</p>
+                              <p><span className="font-medium">Valor unitário:</span> R\$ {mov.valorUnitario.toFixed(2)}</p>
+                              <p><span className="font-medium">Valor total:</span> R\$ {mov.valorTotal.toFixed(2)}</p>
                               {mov.observacao && (
                                 <p><span className="font-medium">Obs:</span> {mov.observacao}</p>
                               )}
@@ -660,15 +658,15 @@ export default function Movimentacoes() {
                                 ? 'bg-green-100 text-green-800' 
                                 : 'bg-red-100 text-red-800'
                             }`}>
-                              {mov.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
+                              {mov.tipo === 'entrada' ? '�� Entrada' : '📤 Saída'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {mov.quantidade} unidades
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div>Unit: R$ {mov.valorUnitario.toFixed(2)}</div>
-                            <div className="font-medium">Total: R$ {mov.valorTotal.toFixed(2)}</div>
+                            <div>Unit: R\$ {mov.valorUnitario.toFixed(2)}</div>
+                            <div className="font-medium">Total: R\$ {mov.valorTotal.toFixed(2)}</div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                             {mov.observacao || '-'}
@@ -714,14 +712,14 @@ export default function Movimentacoes() {
               
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-lg sm:text-xl font-bold text-blue-600">
-                  R$ {movimentacoes.filter(m => m.tipo === 'entrada').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
+                  R\$ {movimentacoes.filter(m => m.tipo === 'entrada').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
                 </div>
                 <div className="text-blue-600 text-xs sm:text-sm font-medium">Valor Entradas</div>
               </div>
               
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-lg sm:text-xl font-bold text-purple-600">
-                  R$ {movimentacoes.filter(m => m.tipo === 'saida').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
+                  R\$ {movimentacoes.filter(m => m.tipo === 'saida').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
                 </div>
                 <div className="text-purple-600 text-xs sm:text-sm font-medium">Valor Saídas</div>
               </div>

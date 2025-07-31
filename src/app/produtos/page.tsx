@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToastContext } from '@/components/ToastProvider'
 import { useLoading } from '@/hooks/useLoading'
@@ -68,11 +68,7 @@ export default function Produtos() {
   ]
 
   // Carregar produtos
-  useEffect(() => {
-    carregarProdutos()
-  }, [])
-
-  const carregarProdutos = async () => {
+  const carregarProdutos = useCallback(async () => {
     await withLoading('carregando', async () => {
       await new Promise(resolve => setTimeout(resolve, 800))
       
@@ -81,7 +77,7 @@ export default function Produtos() {
         try {
           const produtosCarregados = JSON.parse(produtosSalvos)
           // Migrar produtos antigos sem código de barras
-          const produtosMigrados = produtosCarregados.map((produto: any) => ({
+          const produtosMigrados = produtosCarregados.map((produto: Produto) => ({
             ...produto,
             codigoBarras: produto.codigoBarras || ''
           }))
@@ -92,7 +88,11 @@ export default function Produtos() {
         }
       }
     })
-  }
+  }, [withLoading, toast])
+
+  useEffect(() => {
+    carregarProdutos()
+  }, [carregarProdutos])
 
   const salvarProdutos = (novosProdutos: Produto[]) => {
     localStorage.setItem('stockpro_produtos', JSON.stringify(novosProdutos))
@@ -449,7 +449,7 @@ export default function Produtos() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
               <span className="text-blue-800 font-medium text-sm sm:text-base">
-                📊 {produtosFiltrados.length} de {produtos.length} produtos
+                �� {produtosFiltrados.length} de {produtos.length} produtos
               </span>
               <div className="flex items-center space-x-4">
                 <span className="text-blue-600 text-xs sm:text-sm">
@@ -892,7 +892,7 @@ export default function Produtos() {
                               
                               {produto.codigoBarras && (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  📱 Com código de barras
+                                  �� Com código de barras
                                 </span>
                               )}
                             </div>
@@ -934,7 +934,7 @@ export default function Produtos() {
                   </div>
                 </div>
 
-                                {/* Versão Desktop - Tabela */}
+                {/* Versão Desktop - Tabela */}
                 <div className="hidden sm:block overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
