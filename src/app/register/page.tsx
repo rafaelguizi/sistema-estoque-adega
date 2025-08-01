@@ -27,54 +27,84 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
 
+    console.log('🚀 Iniciando processo de registro...')
+    console.log('📝 Dados do formulário:', {
+      companyName: formData.companyName,
+      companyEmail: formData.companyEmail,
+      userName: formData.userName,
+      userEmail: formData.userEmail,
+      plan: formData.plan
+    })
+
     // Validações
     if (formData.password !== formData.confirmPassword) {
+      console.log('❌ Erro: Senhas não coincidem')
       toast.error('Senhas não coincidem', 'Verifique as senhas digitadas')
       setLoading(false)
       return
     }
 
     if (formData.password.length < 6) {
+      console.log('❌ Erro: Senha muito fraca')
       toast.error('Senha muito fraca', 'Senha deve ter pelo menos 6 caracteres')
       setLoading(false)
       return
     }
 
     if (!formData.companyName || !formData.userName || !formData.userEmail) {
+      console.log('❌ Erro: Campos obrigatórios vazios')
       toast.error('Campos obrigatórios', 'Preencha todos os campos obrigatórios')
       setLoading(false)
       return
     }
 
     try {
+      console.log('🔥 Tentando criar usuário no Firebase Auth...')
+      
       // 1. Criar usuário no Firebase Auth
       const userCredential = await register(formData.userEmail, formData.password)
+      console.log('✅ Usuário criado no Firebase Auth com sucesso!', userCredential.user.uid)
       
-      // 2. Salvar dados adicionais no Firestore
-      if (db && userCredential?.user) {
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-          companyName: formData.companyName,
-          companyEmail: formData.companyEmail,
-          userName: formData.userName,
-          userEmail: formData.userEmail,
-          plan: formData.plan,
-          createdAt: new Date().toISOString(),
-          trialStartDate: new Date().toISOString(),
-          trialEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
-          isActive: true,
-          subscription: {
-            plan: formData.plan,
-            status: 'trial',
-            startDate: new Date().toISOString()
-          }
-        })
+      // 2. Verificar se o Firebase está disponível
+      if (!db) {
+        console.log('❌ Erro: Firebase Firestore não está disponível')
+        throw new Error('Firebase Firestore não inicializado')
       }
+      
+      console.log('💾 Tentando salvar dados no Firestore...')
+      
+      // 3. Salvar dados adicionais no Firestore
+      const userData = {
+        companyName: formData.companyName,
+        companyEmail: formData.companyEmail,
+        userName: formData.userName,
+        userEmail: formData.userEmail,
+        plan: formData.plan,
+        createdAt: new Date().toISOString(),
+        trialStartDate: new Date().toISOString(),
+        trialEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        isActive: true,
+        subscription: {
+          plan: formData.plan,
+          status: 'trial',
+          startDate: new Date().toISOString()
+        }
+      }
+      
+      console.log('📄 Dados para salvar:', userData)
+      
+      await setDoc(doc(db, 'users', userCredential.user.uid), userData)
+      console.log('✅ Dados salvos no Firestore com sucesso!')
 
       toast.success('Conta criada com sucesso!', 'Bem-vindo ao StockPro! Trial de 7 dias iniciado.')
+      console.log('🎉 Registro concluído! Redirecionando...')
       router.push('/dashboard')
       
     } catch (error: any) {
-      console.error('Erro ao criar conta:', error)
+      console.error('💥 Erro completo:', error)
+      console.log('🔍 Código do erro:', error.code)
+      console.log('📝 Mensagem do erro:', error.message)
+      console.log('🔧 Stack do erro:', error.stack)
       
       let errorMessage = 'Tente novamente'
       let errorTitle = 'Erro ao criar conta'
@@ -91,11 +121,16 @@ export default function RegisterPage() {
       } else if (error.message === 'Firebase não inicializado') {
         errorTitle = 'Erro de configuração'
         errorMessage = 'Sistema temporariamente indisponível'
+      } else if (error.message.includes('Firestore')) {
+        errorTitle = 'Erro no banco de dados'
+        errorMessage = 'Problema ao salvar dados. Tente novamente.'
       }
       
+      console.log('🚨 Exibindo erro:', errorTitle, '-', errorMessage)
       toast.error(errorTitle, errorMessage)
     } finally {
       setLoading(false)
+      console.log('🏁 Processo finalizado')
     }
   }
 
@@ -156,9 +191,9 @@ export default function RegisterPage() {
                 className="block w-full px-4 py-3 text-gray-900 bg-gray-50 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-200"
                 disabled={loading}
               >
-                <option value="BASIC">💎 Básico - R\$ 39/mês</option>
-                <option value="PRO">🚀 Profissional - R\$ 59/mês</option>
-                <option value="ENTERPRISE">⭐ Enterprise - R\$ 99/mês</option>
+                <option value="BASIC">💎 Básico - R$ 39/mês</option>
+                <option value="PRO">🚀 Profissional - R$ 59/mês</option>
+                <option value="ENTERPRISE">⭐ Enterprise - R$ 99/mês</option>
               </select>
             </div>
           </div>
