@@ -1,23 +1,26 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import { useFirestore } from '@/hooks/useFirestore'
 import { useToastContext } from '@/components/ToastProvider'
-import { useLoading } from '@/hooks/useLoading'
 import LoadingButton from '@/components/LoadingButton'
 import MobileHeader from '@/components/MobileHeader'
+import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface Produto {
-  id: number
+  id: string
   codigo: string
   nome: string
   categoria: string
-  codigoBarras: string
+  codigoBarras?: string
   estoqueMinimo: number
   valorCompra: number
   valorVenda: number
   estoque: number
   ativo: boolean
   dataCadastro: string
+  userId: string
 }
 
 interface ItemVenda {
@@ -28,9 +31,10 @@ interface ItemVenda {
 }
 
 interface Movimentacao {
-  id: number
+  id: string
   produto: string
   codigo: string
+  produtoId: string
   tipo: 'entrada' | 'saida'
   quantidade: number
   valorUnitario: number
@@ -38,56 +42,46 @@ interface Movimentacao {
   data: string
   hora: string
   observacao: string
+  userId: string
 }
 
 export default function PDV() {
   const router = useRouter()
+  const { user } = useAuth()
   const toast = useToastContext()
-  const { isLoading, withLoading } = useLoading()
   
-  const [produtos, setProdutos] = useState<Produto[]>([])
+  // Hooks do Firestore
+  const { 
+    data: produtos, 
+    loading: loadingProdutos,
+    updateDocument: updateProduto
+  } = useFirestore<Produto>('produtos')
+
+  const { 
+    addDocument: addMovimentacao
+  } = useFirestore<Movimentacao>('movimentacoes')
+  
   const [itensVenda, setItensVenda] = useState<ItemVenda[]>([])
   const [showScanner, setShowScanner] = useState(false)
   const [codigoBarrasInput, setCodigoBarrasInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Carregar produtos - SEM LOOP INFINITO
-  const carregarProdutos = async () => {
-    await withLoading('carregando', async () => {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      const produtosSalvos = localStorage.getItem('stockpro_produtos')
-      if (produtosSalvos) {
-        try {
-          const produtosCarregados = JSON.parse(produtosSalvos)
-          // Migrar produtos antigos sem código de barras
-          const produtosMigrados = produtosCarregados.map((produto: Produto) => ({
-            ...produto,
-            codigoBarras: produto.codigoBarras || ''
-          }))
-          setProdutos(produtosMigrados.filter((p: Produto) => p.ativo))
-        } catch (error) {
-          console.error('Erro ao carregar produtos:', error)
-        }
-      }
-    })
-  }
-
-  useEffect(() => {
-    carregarProdutos()
-  }, [])
-
   // Auto-focus no input de código de barras
   useEffect(() => {
-    if (inputRef.current) {
+    if (inputRef.current && !loadingProdutos) {
       inputRef.current.focus()
     }
-  }, [])
+  }, [loadingProdutos])
+
+  // Produtos ativos com código de barras
+  const produtosAtivos = produtos ? produtos.filter(p => p.ativo) : []
+  const produtosComCodigoBarras = produtosAtivos.filter(p => p.codigoBarras)
 
   // Buscar produto por código de barras
   const buscarProdutoPorCodigoBarras = (codigoBarras: string) => {
-    return produtos.find(p => 
+    return produtosAtivos.find(p => 
       p.codigoBarras === codigoBarras || 
       p.codigo === codigoBarras
     )
@@ -135,7 +129,8 @@ export default function PDV() {
   const processarCodigoBarras = async (codigoBarras: string) => {
     if (!codigoBarras.trim()) return
 
-    await withLoading('buscando-produto', async () => {
+    setLoading(true)
+    try {
       await new Promise(resolve => setTimeout(resolve, 300))
       
       const produto = buscarProdutoPorCodigoBarras(codigoBarras.trim())
@@ -153,7 +148,9 @@ export default function PDV() {
         toast.error('Produto não encontrado', 'Código de barras não cadastrado')
         setCodigoBarrasInput('')
       }
-    })
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Handle do input de código de barras
@@ -163,13 +160,13 @@ export default function PDV() {
   }
 
   // Remover item da venda
-  const removerItemVenda = (produtoId: number) => {
+  const removerItemVenda = (produtoId: string) => {
     setItensVenda(itensVenda.filter(item => item.produto.id !== produtoId))
     toast.info('Item removido', 'Produto removido da venda')
   }
 
   // Alterar quantidade do item
-  const alterarQuantidadeItem = (produtoId: number, novaQuantidade: number) => {
+  const alterarQuantidadeItem = (produtoId: string, novaQuantidade: number) => {
     if (novaQuantidade <= 0) {
       removerItemVenda(produtoId)
       return
@@ -201,24 +198,26 @@ export default function PDV() {
 
   // Finalizar venda
   const finalizarVenda = async () => {
+    if (!user) {
+      toast.error('Erro de autenticação', 'Usuário não encontrado!')
+      return
+    }
+
     if (itensVenda.length === 0) {
       toast.warning('Venda vazia', 'Adicione produtos à venda!')
       return
     }
 
-    await withLoading('finalizando-venda', async () => {
-      await new Promise(resolve => setTimeout(resolve, 2000))
+    setLoading(true)
+    try {
+      const totalVenda = calcularTotalVenda()
 
-      try {
-        // Carregar movimentações existentes
-        const movimentacoesSalvas = localStorage.getItem('stockpro_movimentacoes')
-        const movimentacoes = movimentacoesSalvas ? JSON.parse(movimentacoesSalvas) : []
-
-        // Criar movimentações para cada item
-        const novasMovimentacoes: Movimentacao[] = itensVenda.map(item => ({
-          id: Date.now() + Math.random(),
+      // Criar movimentações para cada item
+      const movimentacoesPromises = itensVenda.map(item => {
+        const movimentacao = {
           produto: item.produto.nome,
           codigo: item.produto.codigo,
+          produtoId: item.produto.id,
           tipo: 'saida' as const,
           quantidade: item.quantidade,
           valorUnitario: item.valorUnitario,
@@ -228,49 +227,45 @@ export default function PDV() {
             hour: '2-digit', 
             minute: '2-digit' 
           }),
-          observacao: 'Venda PDV'
-        }))
+          observacao: 'Venda PDV',
+          userId: user.uid
+        }
+        return addMovimentacao(movimentacao)
+      })
 
-        // Salvar movimentações
-        localStorage.setItem('stockpro_movimentacoes', JSON.stringify([...novasMovimentacoes, ...movimentacoes]))
-
-        // Atualizar estoque dos produtos
-        const produtosAtualizados = produtos.map(produto => {
-          const itemVenda = itensVenda.find(item => item.produto.id === produto.id)
-          if (itemVenda) {
-            return {
-              ...produto,
-              estoque: produto.estoque - itemVenda.quantidade
-            }
-          }
-          return produto
+      // Atualizar estoque dos produtos
+      const estoquePromises = itensVenda.map(item => {
+        const novoEstoque = item.produto.estoque - item.quantidade
+        return updateProduto(item.produto.id, { 
+          ...item.produto, 
+          estoque: novoEstoque 
         })
+      })
 
-        // Salvar produtos atualizados
-        localStorage.setItem('stockpro_produtos', JSON.stringify(produtosAtualizados))
-        setProdutos(produtosAtualizados)
+      // Executar todas as operações
+      await Promise.all([...movimentacoesPromises, ...estoquePromises])
 
-        // Limpar venda
-        setItensVenda([])
+      // Limpar venda
+      setItensVenda([])
 
-        const totalVenda = calcularTotalVenda()
-        toast.success(
-          'Venda finalizada!', 
-          `Total: R\$ ${totalVenda.toFixed(2)} - ${itensVenda.length} itens`
-        )
+      toast.success(
+        'Venda finalizada!', 
+        `Total: R\$ ${totalVenda.toFixed(2)} - ${itensVenda.length} itens`
+      )
 
-        // Refocar no input
-        setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.focus()
-          }
-        }, 100)
+      // Refocar no input
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus()
+        }
+      }, 100)
 
-      } catch (error) {
-        console.error('Erro ao finalizar venda:', error)
-        toast.error('Erro na venda', 'Não foi possível finalizar a venda')
-      }
-    })
+    } catch (error) {
+      console.error('Erro ao finalizar venda:', error)
+      toast.error('Erro na venda', 'Não foi possível finalizar a venda')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Limpar venda
@@ -328,272 +323,239 @@ export default function PDV() {
 
   // Simular leitura de código de barras
   const simularLeituraCodigoBarras = () => {
-    const produtosComCodigoBarras = produtos.filter(p => p.codigoBarras)
     if (produtosComCodigoBarras.length === 0) {
       toast.warning('Nenhum produto', 'Cadastre produtos com código de barras primeiro')
       return
     }
 
     const produtoAleatorio = produtosComCodigoBarras[Math.floor(Math.random() * produtosComCodigoBarras.length)]
-    processarCodigoBarras(produtoAleatorio.codigoBarras)
+    processarCodigoBarras(produtoAleatorio.codigoBarras || produtoAleatorio.codigo)
     pararScanner()
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <MobileHeader title="PDV - Ponto de Venda" currentPage="/pdv" />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-100">
+        <MobileHeader title="PDV - Ponto de Venda" currentPage="/pdv" />
 
-      <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-        
-        {/* Loading de carregamento inicial */}
-        {isLoading('carregando') && (
-          <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12 mb-6">
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-green-500 border-t-transparent mb-4 sm:mb-6"></div>
-              <p className="text-gray-600 font-medium text-base sm:text-lg">Carregando PDV...</p>
-              <p className="text-gray-500 text-sm mt-2">Preparando sistema de vendas</p>
-            </div>
-          </div>
-        )}
-
-        {!isLoading('carregando') && (
-          <>
-            {/* Header do PDV */}
-            <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg shadow-lg p-4 sm:p-6 mb-6 text-white">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
-                <div>
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">🛒 PDV - Ponto de Venda</h1>
-                  <p className="text-green-100 mt-1 text-sm sm:text-base">
-                    Escaneie códigos de barras para vendas rápidas
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-                  <LoadingButton
-                    onClick={() => router.push('/produtos')}
-                    variant="secondary"
-                    size="sm"
-                    className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
-                  >
-                    📦 Produtos
-                  </LoadingButton>
-                  <LoadingButton
-                    onClick={() => router.push('/movimentacoes')}
-                    variant="secondary"
-                    size="sm"
-                    className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
-                  >
-                    📋 Movimentações
-                  </LoadingButton>
-                </div>
+        <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+          
+          {/* Loading de carregamento inicial */}
+          {loadingProdutos && (
+            <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12 mb-6">
+              <div className="flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-green-500 border-t-transparent mb-4 sm:mb-6"></div>
+                <p className="text-gray-600 font-medium text-base sm:text-lg">Carregando PDV...</p>
+                <p className="text-gray-500 text-sm mt-2">Sincronizando dados do Firebase</p>
               </div>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Coluna 1: Scanner e Input */}
-              <div className="lg:col-span-1 space-y-6">
-                
-                {/* Input de Código de Barras */}
-                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">📱 Scanner de Produtos</h3>
-                  
-                  <form onSubmit={handleCodigoBarrasSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-bold text-gray-800 mb-2">
-                        Código de Barras
-                      </label>
-                      <input
-                        ref={inputRef}
-                        type="text"
-                        value={codigoBarrasInput}
-                        onChange={(e) => setCodigoBarrasInput(e.target.value)}
-                        className="w-full border-2 border-gray-400 rounded-lg px-4 py-3 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 shadow-sm text-lg"
-                        placeholder="Escaneie ou digite o código"
-                        disabled={isLoading('buscando-produto')}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <LoadingButton
-                        type="submit"
-                        isLoading={isLoading('buscando-produto')}
-                        loadingText="Buscando..."
-                        variant="primary"
-                        size="md"
-                        className="w-full"
-                      >
-                        🔍 Buscar
-                      </LoadingButton>
-                      <LoadingButton
-                        type="button"
-                        onClick={iniciarScanner}
-                        variant="secondary"
-                        size="md"
-                        className="w-full"
-                      >
-                        📷 Câmera
-                      </LoadingButton>
-                    </div>
-                  </form>
-
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      💡 <strong>Dica:</strong> Use um leitor de código de barras conectado ao computador para maior velocidade!
+          {!loadingProdutos && (
+            <>
+              {/* Header do PDV */}
+              <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg shadow-lg p-4 sm:p-6 mb-6 text-white">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
+                  <div>
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">🛒 PDV - Ponto de Venda</h1>
+                    <p className="text-green-100 mt-1 text-sm sm:text-base">
+                      Escaneie códigos de barras para vendas rápidas
                     </p>
                   </div>
-                </div>
-
-                {/* Estatísticas Rápidas */}
-                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">📊 Estatísticas</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                      <span className="text-blue-800 font-medium">Produtos Ativos</span>
-                      <span className="text-blue-600 font-bold">{produtos.length}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                      <span className="text-green-800 font-medium">Com Código de Barras</span>
-                      <span className="text-green-600 font-bold">{produtos.filter(p => p.codigoBarras).length}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                      <span className="text-purple-800 font-medium">Itens na Venda</span>
-                      <span className="text-purple-600 font-bold">{itensVenda.length}</span>
-                    </div>
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                    <LoadingButton
+                      onClick={() => router.push('/produtos')}
+                      variant="secondary"
+                      size="sm"
+                      className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                    >
+                      📦 Produtos
+                    </LoadingButton>
+                    <LoadingButton
+                      onClick={() => router.push('/movimentacoes')}
+                      variant="secondary"
+                      size="sm"
+                      className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                    >
+                      📋 Movimentações
+                    </LoadingButton>
                   </div>
                 </div>
               </div>
 
-              {/* Coluna 2: Lista de Itens da Venda */}
-              <div className="lg:col-span-2">
-                <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                  <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h3 className="text-lg font-semibold text-gray-800">🛒 Itens da Venda</h3>
-                    <div className="flex space-x-2">
-                      <LoadingButton
-                        onClick={limparVenda}
-                        variant="warning"
-                        size="sm"
-                        disabled={itensVenda.length === 0}
-                      >
-                        🧹 Limpar
-                      </LoadingButton>
-                      <LoadingButton
-                        onClick={finalizarVenda}
-                        isLoading={isLoading('finalizando-venda')}
-                        loadingText="Finalizando..."
-                        variant="success"
-                        size="sm"
-                        disabled={itensVenda.length === 0}
-                      >
-                        💰 Finalizar Venda
-                      </LoadingButton>
+              {/* Aviso se não há produtos */}
+              {produtosAtivos.length === 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 sm:p-6 mb-6">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <div className="text-xl sm:text-2xl">⚠️</div>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-yellow-800">
+                        Nenhum produto ativo encontrado
+                      </h3>
+                      <div className="mt-2 text-xs sm:text-sm text-yellow-700">
+                        <p>Para usar o PDV, você precisa ter produtos ativos cadastrados.</p>
+                      </div>
+                      <div className="mt-4">
+                        <LoadingButton
+                          onClick={() => router.push('/produtos')}
+                          variant="warning"
+                          size="sm"
+                        >
+                          📦 Ir para Produtos
+                        </LoadingButton>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Coluna 1: Scanner e Input */}
+                <div className="lg:col-span-1 space-y-6">
+                  
+                  {/* Input de Código de Barras */}
+                  <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">📱 Scanner de Produtos</h3>
+                    
+                    <form onSubmit={handleCodigoBarrasSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-800 mb-2">
+                          Código de Barras
+                        </label>
+                        <input
+                          ref={inputRef}
+                          type="text"
+                          value={codigoBarrasInput}
+                          onChange={(e) => setCodigoBarrasInput(e.target.value)}
+                          className="w-full border-2 border-gray-400 rounded-lg px-4 py-3 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 shadow-sm text-lg"
+                          placeholder="Escaneie ou digite o código"
+                          disabled={loading || produtosAtivos.length === 0}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <LoadingButton
+                          type="submit"
+                          isLoading={loading}
+                          loadingText="Buscando..."
+                          variant="primary"
+                          size="md"
+                          className="w-full"
+                          disabled={produtosAtivos.length === 0}
+                        >
+                          🔍 Buscar
+                        </LoadingButton>
+                        <LoadingButton
+                          type="button"
+                          onClick={iniciarScanner}
+                          variant="secondary"
+                          size="md"
+                          className="w-full"
+                          disabled={produtosAtivos.length === 0}
+                        >
+                          📷 Câmera
+                        </LoadingButton>
+                      </div>
+                    </form>
+
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        💡 <strong>Dica:</strong> Use um leitor de código de barras conectado ao computador para maior velocidade!
+                      </p>
                     </div>
                   </div>
 
-                  {itensVenda.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="text-6xl mb-4">🛒</div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Venda vazia</h3>
-                      <p className="text-gray-500 mb-4">
-                        Escaneie códigos de barras para adicionar produtos
-                      </p>
-                      <div className="text-sm text-gray-400">
-                        💡 Use o campo acima ou conecte um leitor de código de barras
+                  {/* Estatísticas Rápidas */}
+                  <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">📊 Estatísticas</h3>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                        <span className="text-blue-800 font-medium">Produtos Ativos</span>
+                        <span className="text-blue-600 font-bold">{produtosAtivos.length}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                        <span className="text-green-800 font-medium">Com Código de Barras</span>
+                        <span className="text-green-600 font-bold">{produtosComCodigoBarras.length}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                        <span className="text-purple-800 font-medium">Itens na Venda</span>
+                        <span className="text-purple-600 font-bold">{itensVenda.length}</span>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      {/* Lista de Itens - Mobile */}
-                      <div className="block sm:hidden divide-y divide-gray-200">
-                        {itensVenda.map((item) => (
-                          <div key={item.produto.id} className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-bold text-gray-900 truncate">{item.produto.nome}</h4>
-                                <div className="space-y-1 text-xs text-gray-600 mt-1">
-                                  <p><span className="font-medium">Código:</span> #{item.produto.codigo}</p>
-                                  <p><span className="font-medium">Preço unit.:</span> R\$ {item.valorUnitario.toFixed(2)}</p>
-                                  <p><span className="font-medium">Subtotal:</span> R\$ {item.valorTotal.toFixed(2)}</p>
-                                </div>
-                                
-                                {/* Controles de quantidade */}
-                                <div className="flex items-center space-x-2 mt-3">
-                                  <button
-                                    onClick={() => alterarQuantidadeItem(item.produto.id, item.quantidade - 1)}
-                                    className="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center font-bold"
-                                  >
-                                    -
-                                  </button>
-                                  <span className="px-3 py-1 bg-gray-100 rounded-lg font-bold text-gray-800">
-                                    {item.quantidade}
-                                  </span>
-                                  <button
-                                    onClick={() => alterarQuantidadeItem(item.produto.id, item.quantidade + 1)}
-                                    className="w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 flex items-center justify-center font-bold"
-                                    disabled={item.quantidade >= item.produto.estoque}
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              </div>
+                  </div>
+                </div>
 
-                              <button
-                                onClick={() => removerItemVenda(item.produto.id)}
-                                className="ml-4 w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                {/* Coluna 2: Lista de Itens da Venda */}
+                <div className="lg:col-span-2">
+                  <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                      <h3 className="text-lg font-semibold text-gray-800">🛒 Itens da Venda</h3>
+                      <div className="flex space-x-2">
+                        <LoadingButton
+                          onClick={limparVenda}
+                          variant="warning"
+                          size="sm"
+                          disabled={itensVenda.length === 0}
+                        >
+                          🧹 Limpar
+                        </LoadingButton>
+                        <LoadingButton
+                          onClick={finalizarVenda}
+                          isLoading={loading}
+                          loadingText="Finalizando..."
+                          variant="success"
+                          size="sm"
+                          disabled={itensVenda.length === 0}
+                        >
+                          💰 Finalizar Venda
+                        </LoadingButton>
                       </div>
+                    </div>
 
-                      {/* Lista de Itens - Desktop */}
-                      <div className="hidden sm:block overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Produto
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Preço Unit.
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Quantidade
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Subtotal
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Ações
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {itensVenda.map((item) => (
-                              <tr key={item.produto.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div>
-                                    <div className="text-sm font-medium text-gray-900">{item.produto.nome}</div>
-                                    <div className="text-sm text-gray-500">#{item.produto.codigo}</div>
+                    {itensVenda.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="text-6xl mb-4">🛒</div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Venda vazia</h3>
+                        <p className="text-gray-500 mb-4">
+                          {produtosAtivos.length === 0 
+                            ? 'Cadastre produtos ativos para começar a vender'
+                            : 'Escaneie códigos de barras para adicionar produtos'
+                          }
+                        </p>
+                        <div className="text-sm text-gray-400">
+                          💡 Use o campo acima ou conecte um leitor de código de barras
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Lista de Itens - Mobile */}
+                        <div className="block sm:hidden divide-y divide-gray-200">
+                          {itensVenda.map((item) => (
+                            <div key={item.produto.id} className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-bold text-gray-900 truncate">{item.produto.nome}</h4>
+                                  <div className="space-y-1 text-xs text-gray-600 mt-1">
+                                    <p><span className="font-medium">Código:</span> #{item.produto.codigo}</p>
+                                    <p><span className="font-medium">Preço unit.:</span> R\$ {item.valorUnitario.toFixed(2)}</p>
+                                    <p><span className="font-medium">Subtotal:</span> R\$ {item.valorTotal.toFixed(2)}</p>
                                   </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                  R\$ {item.valorUnitario.toFixed(2)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center space-x-2">
+                                  
+                                  {/* Controles de quantidade */}
+                                  <div className="flex items-center space-x-2 mt-3">
                                     <button
                                       onClick={() => alterarQuantidadeItem(item.produto.id, item.quantidade - 1)}
                                       className="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center font-bold"
                                     >
                                       -
                                     </button>
-                                    <span className="px-3 py-1 bg-gray-100 rounded-lg font-bold text-gray-800 min-w-[3rem] text-center">
+                                    <span className="px-3 py-1 bg-gray-100 rounded-lg font-bold text-gray-800">
                                       {item.quantidade}
                                     </span>
                                     <button
@@ -604,99 +566,167 @@ export default function PDV() {
                                       +
                                     </button>
                                   </div>
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    Estoque: {item.produto.estoque}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                  R\$ {item.valorTotal.toFixed(2)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                  <button
-                                    onClick={() => removerItemVenda(item.produto.id)}
-                                    className="text-red-600 hover:text-red-900"
-                                  >
-                                    🗑️ Remover
-                                  </button>
-                                </td>
+                                </div>
+
+                                <button
+                                  onClick={() => removerItemVenda(item.produto.id)}
+                                  className="ml-4 w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Lista de Itens - Desktop */}
+                        <div className="hidden sm:block overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Produto
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Preço Unit.
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Quantidade
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Subtotal
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Ações
+                                </th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {itensVenda.map((item) => (
+                                <tr key={item.produto.id} className="hover:bg-gray-50">
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-900">{item.produto.nome}</div>
+                                      <div className="text-sm text-gray-500">#{item.produto.codigo}</div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    R\$ {item.valorUnitario.toFixed(2)}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center space-x-2">
+                                      <button
+                                        onClick={() => alterarQuantidadeItem(item.produto.id, item.quantidade - 1)}
+                                        className="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center font-bold"
+                                      >
+                                        -
+                                      </button>
+                                      <span className="px-3 py-1 bg-gray-100 rounded-lg font-bold text-gray-800 min-w-[3rem] text-center">
+                                        {item.quantidade}
+                                      </span>
+                                      <button
+                                        onClick={() => alterarQuantidadeItem(item.produto.id, item.quantidade + 1)}
+                                        className="w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 flex items-center justify-center font-bold"
+                                        disabled={item.quantidade >= item.produto.estoque}
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      Estoque: {item.produto.estoque}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                                    R\$ {item.valorTotal.toFixed(2)}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button
+                                      onClick={() => removerItemVenda(item.produto.id)}
+                                      className="text-red-600 hover:text-red-900"
+                                    >
+                                      🗑️ Remover
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
 
-                      {/* Total da Venda */}
-                      <div className="bg-gray-50 px-4 sm:px-6 py-4 border-t border-gray-200">
-                        <div className="flex justify-between items-center">
-                          <div className="text-lg font-bold text-gray-800">
-                            Total da Venda:
+                        {/* Total da Venda */}
+                        <div className="bg-gray-50 px-4 sm:px-6 py-4 border-t border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <div className="text-lg font-bold text-gray-800">
+                              Total da Venda:
+                            </div>
+                            <div className="text-2xl font-bold text-green-600">
+                              R\$ {calcularTotalVenda().toFixed(2)}
+                            </div>
                           </div>
-                          <div className="text-2xl font-bold text-green-600">
-                            R\$ {calcularTotalVenda().toFixed(2)}
+                          <div className="text-sm text-gray-600 mt-1">
+                            {itensVenda.length} {itensVenda.length === 1 ? 'item' : 'itens'} • {itensVenda.reduce((total, item) => total + item.quantidade, 0)} unidades
                           </div>
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          {itensVenda.length} {itensVenda.length === 1 ? 'item' : 'itens'} • {itensVenda.reduce((total, item) => total + item.quantidade, 0)} unidades
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Scanner de Código de Barras */}
-        {showScanner && (
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-              <div className="flex justify-between items-center p-4 border-b">
-                <h3 className="text-lg font-bold text-gray-900">📱 Scanner PDV</h3>
-                <button
-                  onClick={pararScanner}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="p-4">
-                <div className="relative">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-64 bg-black rounded-lg"
-                  />
-                  
-                  {/* Overlay de mira */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="border-2 border-green-500 w-48 h-24 rounded-lg"></div>
+                      </>
+                    )}
                   </div>
                 </div>
-                
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Aponte a câmera para o código de barras do produto
-                  </p>
-                  <LoadingButton
-                    onClick={simularLeituraCodigoBarras}
-                    variant="primary"
-                    size="md"
-                    className="w-full"
+              </div>
+            </>
+          )}
+
+          {/* Scanner de Código de Barras */}
+          {showScanner && (
+            <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div className="flex justify-between items-center p-4 border-b">
+                  <h3 className="text-lg font-bold text-gray-900">📱 Scanner PDV</h3>
+                  <button
+                    onClick={pararScanner}
+                    className="text-gray-400 hover:text-gray-600"
                   >
-                    🎲 Simular Leitura (Teste)
-                  </LoadingButton>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="p-4">
+                  <div className="relative">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      className="w-full h-64 bg-black rounded-lg"
+                    />
+                    
+                    {/* Overlay de mira */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="border-2 border-green-500 w-48 h-24 rounded-lg"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-gray-600 mb-4">
+                      Aponte a câmera para o código de barras do produto
+                    </p>
+                    <LoadingButton
+                      onClick={simularLeituraCodigoBarras}
+                      variant="primary"
+                      size="md"
+                      className="w-full"
+                      disabled={produtosComCodigoBarras.length === 0}
+                    >
+                      🎲 Simular Leitura (Teste)
+                    </LoadingButton>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-      </main>
-    </div>
+        </main>
+      </div>
+    </ProtectedRoute>
   )
 }
