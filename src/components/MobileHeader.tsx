@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface MobileHeaderProps {
   title: string
@@ -10,6 +11,7 @@ interface MobileHeaderProps {
 export default function MobileHeader({ title, currentPage }: MobileHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
+  const { user } = useAuth()
 
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '🏠' },
@@ -22,6 +24,22 @@ export default function MobileHeader({ title, currentPage }: MobileHeaderProps) 
     router.push(path)
     setMobileMenuOpen(false)
   }
+
+  const handleLogout = async () => {
+    try {
+      const { auth } = await import('@/lib/firebase')
+      const { signOut } = await import('firebase/auth')
+      if (auth) {
+        await signOut(auth)
+        router.push('/login')
+      }
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+    }
+  }
+
+  // Se não estiver logado, não renderizar
+  if (!user) return null
 
   return (
     <>
@@ -61,7 +79,7 @@ export default function MobileHeader({ title, currentPage }: MobileHeaderProps) 
             </div>
 
             {/* Navegação Desktop - SEM scroll horizontal */}
-            <div className="hidden md:flex space-x-4">
+            <div className="hidden md:flex items-center space-x-4">
               {currentPage !== '/dashboard' && (
                 <button 
                   onClick={() => router.push('/dashboard')}
@@ -94,6 +112,14 @@ export default function MobileHeader({ title, currentPage }: MobileHeaderProps) 
                   📊 Relatórios
                 </button>
               )}
+              
+              {/* Botão Logout Desktop */}
+              <button
+                onClick={handleLogout}
+                className="text-red-600 hover:text-red-800 font-medium transition-colors"
+              >
+                🚪 Sair
+              </button>
             </div>
           </div>
 
@@ -121,6 +147,7 @@ export default function MobileHeader({ title, currentPage }: MobileHeaderProps) 
                 <div>
                   <h2 className="text-xl font-bold">📦 StockPro</h2>
                   <p className="text-purple-100 text-sm">Sistema de Gestão</p>
+                  <p className="text-purple-200 text-xs mt-1">{user.email}</p>
                 </div>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
@@ -156,6 +183,21 @@ export default function MobileHeader({ title, currentPage }: MobileHeaderProps) 
                   </button>
                 )
               })}
+              
+              {/* Separador */}
+              <div className="border-t border-gray-200 my-4"></div>
+              
+              {/* Botão Logout Mobile */}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center space-x-4 px-6 py-4 text-left hover:bg-red-50 transition-colors duration-200"
+              >
+                <span className="text-2xl">🚪</span>
+                <div>
+                  <span className="font-medium text-red-600">Sair</span>
+                  <div className="text-xs text-red-500">Fazer logout</div>
+                </div>
+              </button>
             </div>
 
             {/* Footer do Menu */}

@@ -1,19 +1,22 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import { useFirestore } from '@/hooks/useFirestore'
 
 interface Produto {
-  id: number
+  id: string
   codigo: string
   nome: string
   categoria: string
   estoqueMinimo: number
   estoque: number
   ativo: boolean
+  userId: string
 }
 
 interface AlertaProduto {
-  id: number
+  id: string
   codigo: string
   nome: string
   categoria: string
@@ -29,68 +32,93 @@ interface AlertSystemProps {
 
 export default function AlertSystem({ showInDashboard = false, compact = false }: AlertSystemProps) {
   const router = useRouter()
+  const { user } = useAuth()
+  const { data: produtos, loading } = useFirestore<Produto>('produtos')
+  
   const [alertas, setAlertas] = useState<AlertaProduto[]>([])
   const [showAlertas, setShowAlertas] = useState(false)
-  const [alertasVistos, setAlertasVistos] = useState<number[]>([])
+  const [alertasVistos, setAlertasVistos] = useState<string[]>([])
 
   useEffect(() => {
-    carregarAlertas()
-    // Atualizar alertas a cada 30 segundos
-    const interval = setInterval(carregarAlertas, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const carregarAlertas = () => {
-    const produtosSalvos = localStorage.getItem('stockpro_produtos')
-    if (produtosSalvos) {
+    if (!user) return
+    
+    // Carregar alertas vistos do localStorage (específico do usuário)
+    const alertasVistosSalvos = localStorage.getItem(`stockpro_alertas_vistos_${user.uid}`)
+    if (alertasVistosSalvos) {
       try {
-        const produtos: Produto[] = JSON.parse(produtosSalvos)
-        const produtosAtivos = produtos.filter(p => p.ativo)
-        
-        const novosAlertas: AlertaProduto[] = []
-        
-        produtosAtivos.forEach(produto => {
-          if (produto.estoque <= produto.estoqueMinimo) {
-            let nivel: 'critico' | 'baixo' | 'zerado' = 'baixo'
-            
-            if (produto.estoque === 0) {
-              nivel = 'zerado'
-            } else if (produto.estoque <= produto.estoqueMinimo * 0.5) {
-              nivel = 'critico'
-            }
-            
-            novosAlertas.push({
-              id: produto.id,
-              codigo: produto.codigo,
-              nome: produto.nome,
-              categoria: produto.categoria,
-              estoque: produto.estoque,
-              estoqueMinimo: produto.estoqueMinimo,
-              nivel
-            })
-          }
-        })
-        
-        setAlertas(novosAlertas)
-        
-        // Salvar alertas para persistência
-        localStorage.setItem('stockpro_alertas_ativos', JSON.stringify(novosAlertas))
+        setAlertasVistos(JSON.parse(alertasVistosSalvos))
       } catch (error) {
-        console.error('Erro ao carregar alertas:', error)
+        console.error('Erro ao carregar alertas vistos:', error)
       }
     }
+  }, [user])
+
+  useEffect(() => {
+    if (!produtos || produtos.length === 0) {
+      setAlertas([])
+      return
+    }
+    
+    carregarAlertas()
+  }, [produtos])
+
+  const carregarAlertas = () => {
+    if (!produtos) return
+    
+    const produtosAtivos = produtos.filter(p => p.ativo)
+    const novosAlertas: AlertaProduto[] = []
+    
+    produtosAtivos.forEach(produto => {
+      if (produto.estoque <= produto.estoqueMinimo) {
+        let nivel: 'critico' | 'baixo' | 'zerado' = 'baixo'
+        
+        if (produto.estoque === 0) {
+          nivel = 'zerado'
+        } else if (produto.estoque <= produto.estoqueMinimo * 0.5) {
+          nivel = 'critico'
+        }
+        
+        novosAlertas.push({
+          id: produto.id,
+          codigo: produto.codigo,
+          nome: produto.nome,
+          categoria: produto.categoria,
+          estoque: produto.estoque,
+          estoqueMinimo: produto.estoqueMinimo,
+          nivel
+        })
+      }
+    })
+    
+    setAlertas(novosAlertas)
   }
 
-  const marcarComoVisto = (alertaId: number) => {
+  const marcarComoVisto = (alertaId: string) => {
+    if (!user) return
+    
     const novosVistos = [...alertasVistos, alertaId]
     setAlertasVistos(novosVistos)
-    localStorage.setItem('stockpro_alertas_vistos', JSON.stringify(novosVistos))
+    localStorage.setItem(`stockpro_alertas_vistos_${user.uid}`, JSON.stringify(novosVistos))
   }
 
   const marcarTodosComoVistos = () => {
+    if (!user) return
+    
     const todosIds = alertas.map(a => a.id)
     setAlertasVistos(todosIds)
-    localStorage.setItem('stockpro_alertas_vistos', JSON.stringify(todosIds))
+    localStorage.setItem(`stockpro_alertas_vistos_${user.uid}`, JSON.stringify(todosIds))
+  }
+
+  // Se não estiver logado, não mostrar alertas
+  if (!user) return null
+  
+  // Se estiver carregando, mostrar loading
+  if (loading && compact) {
+    return (
+      <div className="p-2 rounded-lg bg-gray-100">
+        <div className="animate-pulse w-6 h-6 bg-gray-300 rounded"></div>
+      </div>
+    )
   }
 
   const alertasNaoVistos = alertas.filter(a => !alertasVistos.includes(a.id))

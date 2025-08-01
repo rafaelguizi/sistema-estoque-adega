@@ -1,33 +1,41 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+
+type LoadingStates = Record<string, boolean>
 
 export function useLoading() {
-  const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({})
+  const [loadingStates, setLoadingStates] = useState<LoadingStates>({})
 
-  const setLoading = (key: string, isLoading: boolean) => {
+  const setLoading = useCallback((key: string, loading: boolean) => {
     setLoadingStates(prev => ({
       ...prev,
-      [key]: isLoading
+      [key]: loading
     }))
-  }
+  }, [])
 
-  const isLoading = (key: string) => {
+  const isLoading = useCallback((key?: string) => {
+    if (!key) {
+      return Object.values(loadingStates).some(Boolean)
+    }
     return loadingStates[key] || false
-  }
+  }, [loadingStates])
 
-  const withLoading = async <T>(key: string, asyncFunction: () => Promise<T>): Promise<T> => {
+  const withLoading = useCallback(async <T>(
+    key: string,
+    asyncFn: () => Promise<T>
+  ): Promise<T> => {
     setLoading(key, true)
     try {
-      const result = await asyncFunction()
-      return result
+      return await asyncFn()
     } finally {
       setLoading(key, false)
     }
-  }
+  }, [setLoading])
 
   return {
-    setLoading,
     isLoading,
-    withLoading
+    setLoading,
+    withLoading,
+    loadingStates
   }
 }

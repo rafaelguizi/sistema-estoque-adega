@@ -16,15 +16,37 @@ let app: FirebaseApp | null = null
 let auth: Auth | null = null
 let db: Firestore | null = null
 
+// Função para validar configuração
+function validateFirebaseConfig() {
+  const requiredFields = [
+    'apiKey',
+    'authDomain', 
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId'
+  ]
+
+  const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig])
+  
+  if (missingFields.length > 0) {
+    console.error('❌ Variáveis de ambiente Firebase faltando:', missingFields)
+    return false
+  }
+
+  return true
+}
+
 // Função para inicializar Firebase apenas no cliente
 function initializeFirebase() {
   if (typeof window === 'undefined') {
     // Estamos no servidor, não inicializar
+    console.log('🔒 Firebase: Execução no servidor, pulando inicialização')
     return { app: null, auth: null, db: null }
   }
 
-  if (!firebaseConfig.apiKey) {
-    console.warn('⚠️ Configurações do Firebase não encontradas')
+  if (!validateFirebaseConfig()) {
+    console.warn('⚠️ Configurações do Firebase inválidas ou incompletas')
     return { app: null, auth: null, db: null }
   }
 
@@ -44,7 +66,8 @@ function initializeFirebase() {
     console.log('✅ Serviços Firebase configurados:', {
       hasAuth: !!auth,
       hasDb: !!db,
-      projectId: firebaseConfig.projectId
+      projectId: firebaseConfig.projectId,
+      environment: process.env.NODE_ENV
     })
 
     return { app, auth, db }

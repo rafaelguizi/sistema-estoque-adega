@@ -3,11 +3,12 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 import Toast, { ToastData } from './Toast'
 
 interface ToastContextType {
-  success: (title: string, message: string) => void
-  error: (title: string, message: string) => void
-  warning: (title: string, message: string) => void
-  info: (title: string, message: string) => void
+  success: (title: string, message: string, duration?: number) => void
+  error: (title: string, message: string, duration?: number) => void
+  warning: (title: string, message: string, duration?: number) => void
+  info: (title: string, message: string, duration?: number) => void
   removeToast: (id: string) => void
+  clearAll: () => void
   toasts: ToastData[]
 }
 
@@ -25,7 +26,7 @@ interface ToastContainerProps {
 
 function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-50 space-y-2 max-h-screen overflow-y-auto">
       {toasts.map((toast) => (
         <Toast key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
@@ -36,29 +37,42 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastData[]>([])
 
-  const addToast = useCallback((type: ToastData['type'], title: string, message: string) => {
-    const id = Math.random().toString(36).substr(2, 9)
+  const addToast = useCallback((
+    type: ToastData['type'], 
+    title: string, 
+    message: string, 
+    duration: number = 5000
+  ) => {
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
     const newToast: ToastData = {
       id,
       type,
       title,
       message,
-      duration: 5000
+      duration
     }
 
     setToasts(prev => [...prev, newToast])
+    
+    // Limitar número máximo de toasts
+    setToasts(prev => prev.slice(-5)) // Máximo 5 toasts
   }, [])
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }, [])
 
+  const clearAll = useCallback(() => {
+    setToasts([])
+  }, [])
+
   const toast: ToastContextType = {
-    success: (title, message) => addToast('success', title, message),
-    error: (title, message) => addToast('error', title, message),
-    warning: (title, message) => addToast('warning', title, message),
-    info: (title, message) => addToast('info', title, message),
+    success: (title, message, duration) => addToast('success', title, message, duration),
+    error: (title, message, duration) => addToast('error', title, message, duration || 6000),
+    warning: (title, message, duration) => addToast('warning', title, message, duration),
+    info: (title, message, duration) => addToast('info', title, message, duration),
     removeToast,
+    clearAll,
     toasts
   }
 
@@ -77,3 +91,6 @@ export function useToastContext() {
   }
   return context
 }
+
+// Alias para compatibilidade
+export const useToast = useToastContext

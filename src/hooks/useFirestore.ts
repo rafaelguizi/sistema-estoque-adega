@@ -1,21 +1,24 @@
+'use client'
 import { useState, useEffect } from 'react'
 import { 
   collection, 
   doc, 
   getDocs, 
   setDoc, 
+  updateDoc,
   deleteDoc, 
   query, 
   where,
-  orderBy 
+  Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function useFirestore<T>(collectionName: string) {
   const { user } = useAuth()
-  const [data, setData] = useState<T[]>([])
+  const [data, setData] = useState<T[] | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -28,14 +31,18 @@ export function useFirestore<T>(collectionName: string) {
   }, [user, collectionName])
 
   const loadData = async () => {
-    if (!user) return
+    if (!user || !db) {
+      setLoading(false)
+      return
+    }
 
     try {
       setLoading(true)
+      setError(null)
+      
       const q = query(
         collection(db, collectionName),
-        where('userId', '==', user.uid),
-        orderBy('dataCadastro', 'desc')
+        where('userId', '==', user.uid)
       )
       
       const querySnapshot = await getDocs(q)
@@ -44,55 +51,95 @@ export function useFirestore<T>(collectionName: string) {
         ...doc.data()
       })) as T[]
       
-      setData(items)
+      // Ordenar no cliente por dataCadastro
+      const sortedItems = items.sort((a: any, b: any) => {
+        const dateA = new Date(a.dataCadastro || 0)
+        const dateB = new Date(b.dataCadastro || 0)
+        return dateB.getTime() - dateA.getTime()
+      })
+      
+      setData(sortedItems)
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
+      console.error('Erro ao carregar dados do Firestore:', error)
+      setError('Erro ao carregar dados')
+      setData([])
     } finally {
       setLoading(false)
     }
   }
 
-  const addItem = async (item: any) => {
-    if (!user) return
-
-    const docRef = doc(collection(db, collectionName))
-    const newItem = {
-      ...item,
-      id: docRef.id,
-      userId: user.uid,
-      dataCadastro: new Date().toISOString()
+  const addDocument = async (item: any) => {
+    if (!user || !db) {
+      throw new Error('Usuário não autenticado ou Firebase não inicializado')
     }
 
-    await setDoc(docRef, newItem)
-    setData(prev => [newItem, ...prev])
-    return newItem
+    try {
+      const docRef = doc(collection(db, collectionName))
+      
+      const newItemData = {
+        ...item,
+        id: docRef.id,
+        userId: user.uid,
+        dataCadastro: item.dataCadastro || new Date().toLocaleDateString('pt-BR'),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      }
+
+      await setDoc(docRef, newItemData)
+      setData(prev => prev ? [newItemData, ...prev] : [newItemData])
+      
+      return newItemData
+    } catch (error) {
+      console.error('Erro ao adicionar documento:', error)
+      throw new Error('Erro ao salvar dados')
+    }
   }
 
-  const updateItem = async (id: string, updates: any) => {
-    if (!user) return
+  const updateDocument = async (id: string, updates: any) => {
+    if (!user || !db) {
+      throw new Error('Usuário não autenticado ou Firebase não inicializado')
+    }
 
-    const docRef = doc(db, collectionName, id)
-    const updatedItem = { ...updates, userId: user.uid }
-    
-    await setDoc(docRef, updatedItem, { merge: true })
-    setData(prev => prev.map(item => 
-      (item as any).id === id ? { ...item, ...updatedItem } : item
-    ))
+    try {
+      const docRef = doc(db, collectionName, id)
+      
+      const updateData = {
+        ...updates,
+        updatedAt: Timestamp.now()
+      }
+      
+      await updateDoc(docRef, updateData)
+      
+      setData(prev => prev ? prev.map((item: any) => 
+        item.id === id ? { ...item, ...updateData } : item
+      ) : [])
+    } catch (error) {
+      console.error('Erro ao atualizar documento:', error)
+      throw new Error('Erro ao atualizar dados')
+    }
   }
 
-  const deleteItem = async (id: string) => {
-    if (!user) return
+  const deleteDocument = async (id: string) => {
+    if (!user || !db) {
+      throw new Error('Usuário não autenticado ou Firebase não inicializado')
+    }
 
-    await deleteDoc(doc(db, collectionName, id))
-    setData(prev => prev.filter(item => (item as any).id !== id))
+    try {
+      await deleteDoc(doc(db, collectionName, id))
+      setData(prev => prev ? prev.filter((item: any) => item.id !== id) : [])
+    } catch (error) {
+      console.error('Erro ao deletar documento:', error)
+      throw new Error('Erro ao deletar dados')
+    }
   }
 
   return {
     data,
     loading,
-    addItem,
-    updateItem,
-    deleteItem,
+    error,
+    addDocument,
+    updateDocument,
+    deleteDocument,
     refresh: loadData
   }
 }
