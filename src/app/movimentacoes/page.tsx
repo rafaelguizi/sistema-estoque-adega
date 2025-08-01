@@ -423,7 +423,7 @@ export default function Movimentacoes() {
                       }`}
                       disabled={isLoading('salvando')}
                     >
-                      📥 Entrada
+                      �� Entrada
                     </button>
                     <button
                       type="button"
@@ -470,10 +470,12 @@ export default function Movimentacoes() {
                   />
                 </div>
 
-                {/* Resumo da movimentação */}
+                {/* Resumo da movimentação - VERSÃO DESTACADA */}
                 {formData.produtoId && formData.quantidade && (
-                  <div className="bg-gradient-to-r from-blue-50 to-green-50 p-3 sm:p-4 rounded-lg border-2 border-blue-200">
-                    <h4 className="font-bold text-gray-800 mb-2 text-sm sm:text-base">💰 Resumo da Movimentação:</h4>
+                  <div className="bg-gradient-to-r from-green-100 via-blue-100 to-purple-100 p-4 sm:p-5 rounded-lg border-4 border-green-500 shadow-lg">
+                    <h4 className="font-bold text-gray-900 mb-3 text-base sm:text-lg flex items-center">
+                      💰 <span className="ml-2">Resumo da Movimentação:</span>
+                    </h4>
                     {(() => {
                       const produto = produtos.find(p => p.id === parseInt(formData.produtoId))
                       const quantidade = parseInt(formData.quantidade)
@@ -481,29 +483,37 @@ export default function Movimentacoes() {
                       const valorTotal = valorUnitario * quantidade
                       
                       return (
-                        <div className="space-y-1 text-xs sm:text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Produto:</span>
-                            <span className="font-bold">{produto?.nome}</span>
+                        <div className="space-y-2 text-sm sm:text-base">
+                          <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
+                            <span className="text-gray-800 font-medium">Produto:</span>
+                            <span className="font-bold text-gray-900">{produto?.nome}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tipo:</span>
-                            <span className="font-bold">{formData.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}</span>
+                          <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
+                            <span className="text-gray-800 font-medium">Tipo:</span>
+                            <span className={`font-bold px-3 py-1 rounded-full text-sm ${
+                              formData.tipo === 'entrada' 
+                                ? 'bg-green-200 text-green-800' 
+                                : 'bg-red-200 text-red-800'
+                            }`}>
+                              {formData.tipo === 'entrada' ? '📥 Entrada' : '�� Saída'}
+                            </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Quantidade:</span>
-                            <span className="font-bold">{quantidade} unidades</span>
+                          <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
+                            <span className="text-gray-800 font-medium">Quantidade:</span>
+                            <span className="font-bold text-gray-900">{quantidade} unidades</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Valor unitário:</span>
-                            <span className="font-bold">R$ {valorUnitario.toFixed(2)}</span>
+                          <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
+                            <span className="text-gray-800 font-medium">Valor unitário:</span>
+                            <span className="font-bold text-gray-900">R\$ {valorUnitario.toFixed(2)}</span>
                           </div>
-                          <div className="flex justify-between border-t pt-1">
-                            <span className="text-gray-600">Valor total:</span>
-                            <span className="font-bold text-blue-600">R$ {valorTotal.toFixed(2)}</span>
+                          <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-200 to-green-200 rounded-lg border-2 border-blue-400 shadow-md">
+                            <span className="text-gray-900 font-bold text-base">Valor total:</span>
+                            <span className="font-bold text-blue-800 text-lg">R\$ {valorTotal.toFixed(2)}</span>
                           </div>
-                          <div className="text-xs text-gray-500 mt-2">
-                            💡 Valor automático: {formData.tipo === 'entrada' ? 'Preço de compra' : 'Preço de venda'} do produto
+                          <div className="bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded-r-lg">
+                            <p className="text-sm text-yellow-800 font-medium">
+                              💡 <strong>Valor automático:</strong> {formData.tipo === 'entrada' ? 'Preço de compra' : 'Preço de venda'} do produto
+                            </p>
                           </div>
                         </div>
                       )
@@ -589,8 +599,8 @@ export default function Movimentacoes() {
                             <div className="space-y-1 text-xs text-gray-600">
                               <p><span className="font-medium">Código:</span> #{mov.codigo}</p>
                               <p><span className="font-medium">Quantidade:</span> {mov.quantidade} unidades</p>
-                              <p><span className="font-medium">Valor unitário:</span> R$ {mov.valorUnitario.toFixed(2)}</p>
-                              <p><span className="font-medium">Valor total:</span> R$ {mov.valorTotal.toFixed(2)}</p>
+                              <p><span className="font-medium">Valor unitário:</span> R\$ {mov.valorUnitario.toFixed(2)}</p>
+                              <p><span className="font-medium">Valor total:</span> R\$ {mov.valorTotal.toFixed(2)}</p>
                               {mov.observacao && (
                                 <p><span className="font-medium">Obs:</span> {mov.observacao}</p>
                               )}
@@ -660,15 +670,15 @@ export default function Movimentacoes() {
                                 ? 'bg-green-100 text-green-800' 
                                 : 'bg-red-100 text-red-800'
                             }`}>
-                              {mov.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
+                              {mov.tipo === 'entrada' ? '�� Entrada' : '📤 Saída'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {mov.quantidade} unidades
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div>Unit: R$ {mov.valorUnitario.toFixed(2)}</div>
-                            <div className="font-medium">Total: R$ {mov.valorTotal.toFixed(2)}</div>
+                            <div>Unit: R\$ {mov.valorUnitario.toFixed(2)}</div>
+                            <div className="font-medium">Total: R\$ {mov.valorTotal.toFixed(2)}</div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                             {mov.observacao || '-'}
@@ -714,14 +724,14 @@ export default function Movimentacoes() {
               
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-lg sm:text-xl font-bold text-blue-600">
-                  R$ {movimentacoes.filter(m => m.tipo === 'entrada').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
+                  R\$ {movimentacoes.filter(m => m.tipo === 'entrada').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
                 </div>
                 <div className="text-blue-600 text-xs sm:text-sm font-medium">Valor Entradas</div>
               </div>
               
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-lg sm:text-xl font-bold text-purple-600">
-                  R$ {movimentacoes.filter(m => m.tipo === 'saida').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
+                  R\$ {movimentacoes.filter(m => m.tipo === 'saida').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
                 </div>
                 <div className="text-purple-600 text-xs sm:text-sm font-medium">Valor Saídas</div>
               </div>

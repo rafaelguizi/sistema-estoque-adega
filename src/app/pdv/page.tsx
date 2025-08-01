@@ -372,7 +372,7 @@ export default function PDV() {
                     onClick={() => router.push('/produtos')}
                     variant="secondary"
                     size="sm"
-                    className="w-full sm:w-auto bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                    className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
                   >
                     📦 Produtos
                   </LoadingButton>
@@ -380,7 +380,7 @@ export default function PDV() {
                     onClick={() => router.push('/movimentacoes')}
                     variant="secondary"
                     size="sm"
-                    className="w-full sm:w-auto bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                    className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
                   >
                     📋 Movimentações
                   </LoadingButton>
