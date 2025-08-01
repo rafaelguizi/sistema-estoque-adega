@@ -77,118 +77,136 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">SP</span>
+          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-2xl">📦</span>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             StockPro - Login
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sistema de Controle de Estoque
+            Sistema Profissional de Controle de Estoque
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              <div className="flex items-center">
-                <span className="text-red-500 mr-2">❌</span>
-                {error}
+        <div className="bg-white rounded-xl shadow-xl p-8">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <div className="flex items-center">
+                  <span className="text-red-500 mr-2">❌</span>
+                  {error}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email de Acesso
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="appearance-none relative block w-full px-4 py-3 border-2 border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm font-medium"
+                  placeholder="seu@email.com"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  Senha de Acesso
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="appearance-none relative block w-full px-4 py-3 border-2 border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm font-medium"
+                  placeholder="••••••••••••"
+                  disabled={loading}
+                />
               </div>
             </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
-                placeholder="seu@email.com"
-                disabled={loading}
-              />
-            </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Senha
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
-                placeholder="Sua senha"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <LoadingButton
-              type="submit"
-              isLoading={loading}
-              loadingText="Entrando..."
-              variant="primary"
-              size="lg"
-              className="w-full"
-            >
-              Entrar
-            </LoadingButton>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Precisa de acesso?{' '}
-              <button
-                type="button"
-                onClick={() => router.push('/register')}
-                className="text-blue-600 hover:text-blue-500 font-medium underline"
+              <LoadingButton
+                type="submit"
+                isLoading={loading}
+                loadingText="Entrando..."
+                variant="primary"
+                size="lg"
+                className="w-full"
               >
-                Solicite uma conta aqui
-              </button>
-            </p>
-          </div>
-
-          {/* Informações para o usuário */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-            <h4 className="text-sm font-medium text-blue-800 mb-2 flex items-center">
-              <span className="mr-2">ℹ️</span>
-              Informações
-            </h4>
-            <ul className="text-xs text-blue-700 space-y-1">
-              <li>• Use o email e senha fornecidos pelo administrador</li>
-              <li>• Contas são criadas apenas pelo administrador do sistema</li>
-              <li>• Em caso de problemas, entre em contato com o suporte</li>
-              <li>• Todos os dados são sincronizados em tempo real</li>
-            </ul>
-          </div>
-
-          {/* Credenciais de teste (remover em produção) */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
-            <h4 className="text-sm font-medium text-yellow-800 mb-2 flex items-center">
-              <span className="mr-2">🧪</span>
-              Teste do Sistema
-            </h4>
-            <div className="text-xs text-yellow-700 space-y-1">
-              <p>Para testar o sistema, você pode criar uma conta na página de registro.</p>
-              <p>Ou use as credenciais fornecidas pelo administrador.</p>
+                🔓 Entrar no Sistema
+              </LoadingButton>
             </div>
-          </div>
-        </form>
+
+            {/* SEÇÃO ATUALIZADA - SEM LINK PARA REGISTRO */}
+            <div className="text-center">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">
+                  💼 Precisa de acesso ao sistema?
+                </h4>
+                <p className="text-sm text-blue-700 mb-2">
+                  Entre em contato conosco para adquirir sua licença do StockPro
+                </p>
+                <div className="space-y-1 text-xs text-blue-600">
+                  <p>📧 rafaelfelipegb.arf@gmail.com</p>
+                  <p>📱 WhatsApp: (19) 99181-3749</p>
+                  <p>🌐 www.stockprov2.com</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Informações para o usuário */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-800 mb-2 flex items-center">
+                <span className="mr-2">ℹ️</span>
+                Como Funciona
+              </h4>
+              <ul className="text-xs text-gray-700 space-y-1">
+                <li>• Use o email e senha fornecidos após a compra</li>
+                <li>• Acesso liberado automaticamente após confirmação do pagamento</li>
+                <li>• Suporte técnico incluído em todos os planos</li>
+                <li>• Dados sincronizados em tempo real na nuvem</li>
+                <li>• Backup automático e segurança garantida</li>
+              </ul>
+            </div>
+
+            {/* Benefícios do Sistema */}
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-green-800 mb-2 flex items-center">
+                <span className="mr-2">🚀</span>
+                Por que escolher o StockPro?
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
+                <div>• Controle completo</div>
+                <div>• PDV integrado</div>
+                <div>• Relatórios avançados</div>
+                <div>• Mobile responsivo</div>
+                <div>• Código de barras</div>
+                <div>• Suporte 24/7</div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Rodapé */}
+        <div className="text-center">
+          <p className="text-xs text-gray-500">
+            © 2024 StockPro - Sistema Profissional de Gestão de Estoque
+          </p>
+        </div>
       </div>
     </div>
   )

@@ -65,15 +65,30 @@ export default function PDV() {
   const [showScanner, setShowScanner] = useState(false)
   const [codigoBarrasInput, setCodigoBarrasInput] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // NOVOS ESTADOS PARA VENDA ATIVA
+  const [vendaAtiva, setVendaAtiva] = useState(false)
+  const [autoFocus, setAutoFocus] = useState(true)
+  
   const videoRef = useRef<HTMLVideoElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Auto-focus no input de código de barras
   useEffect(() => {
-    if (inputRef.current && !loadingProdutos) {
+    if (inputRef.current && !loadingProdutos && autoFocus) {
       inputRef.current.focus()
     }
-  }, [loadingProdutos])
+  }, [loadingProdutos, autoFocus, vendaAtiva])
+
+  // Auto-focus quando a venda ativa muda
+  useEffect(() => {
+    if (vendaAtiva && inputRef.current) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [vendaAtiva])
 
   // Produtos ativos com código de barras
   const produtosAtivos = produtos ? produtos.filter(p => p.ativo) : []
@@ -138,12 +153,15 @@ export default function PDV() {
       if (produto) {
         await adicionarProdutoVenda(produto)
         setCodigoBarrasInput('')
-        // Refocar no input
-        setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.focus()
-          }
-        }, 100)
+        
+        // Se venda ativa, manter foco automaticamente
+        if (vendaAtiva) {
+          setTimeout(() => {
+            if (inputRef.current) {
+              inputRef.current.focus()
+            }
+          }, 100)
+        }
       } else {
         toast.error('Produto não encontrado', 'Código de barras não cadastrado')
         setCodigoBarrasInput('')
@@ -157,6 +175,23 @@ export default function PDV() {
   const handleCodigoBarrasSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     processarCodigoBarras(codigoBarrasInput)
+  }
+
+  // NOVA FUNÇÃO: Toggle venda ativa
+  const toggleVendaAtiva = () => {
+    const novoEstado = !vendaAtiva
+    setVendaAtiva(novoEstado)
+    
+    if (novoEstado) {
+      toast.success('🔥 Venda iniciada!', 'Escaneie produtos continuamente')
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus()
+        }
+      }, 100)
+    } else {
+      toast.info('⏸️ Venda pausada', 'Modo manual ativado')
+    }
   }
 
   // Remover item da venda
@@ -227,7 +262,7 @@ export default function PDV() {
             hour: '2-digit', 
             minute: '2-digit' 
           }),
-          observacao: 'Venda PDV',
+          observacao: vendaAtiva ? 'Venda PDV - Modo Ativo' : 'Venda PDV',
           userId: user.uid
         }
         return addMovimentacao(movimentacao)
@@ -249,16 +284,18 @@ export default function PDV() {
       setItensVenda([])
 
       toast.success(
-        'Venda finalizada!', 
+        '💰 Venda finalizada!', 
         `Total: R$ ${totalVenda.toFixed(2)} - ${itensVenda.length} itens`
       )
 
-      // Refocar no input
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus()
-        }
-      }, 100)
+      // Se venda ativa, manter foco para próxima venda
+      if (vendaAtiva) {
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus()
+          }
+        }, 100)
+      }
 
     } catch (error) {
       console.error('Erro ao finalizar venda:', error)
@@ -274,7 +311,7 @@ export default function PDV() {
     
     if (confirm('Tem certeza que deseja limpar a venda?')) {
       setItensVenda([])
-      toast.info('Venda limpa', 'Todos os itens foram removidos')
+      toast.info('🧹 Venda limpa', 'Todos os itens foram removidos')
       
       // Refocar no input
       setTimeout(() => {
@@ -297,7 +334,7 @@ export default function PDV() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         setShowScanner(true)
-        toast.info('Scanner ativo', 'Aponte a câmera para o código de barras')
+        toast.info('📷 Scanner ativo', 'Aponte a câmera para o código de barras')
       }
     } catch (error) {
       console.error('Erro ao acessar câmera:', error)
@@ -353,16 +390,29 @@ export default function PDV() {
 
           {!loadingProdutos && (
             <>
-              {/* Header do PDV */}
+              {/* Header do PDV - ATUALIZADO COM BOTÃO VENDA ATIVA */}
               <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg shadow-lg p-4 sm:p-6 mb-6 text-white">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
                   <div>
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">🛒 PDV - Ponto de Venda</h1>
                     <p className="text-green-100 mt-1 text-sm sm:text-base">
-                      Escaneie códigos de barras para vendas rápidas
+                      {vendaAtiva 
+                        ? '🔥 Modo Venda Ativa - Escaneie produtos continuamente' 
+                        : 'Escaneie códigos de barras para vendas rápidas'
+                      }
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                    {/* NOVO BOTÃO VENDA ATIVA */}
+                    <LoadingButton
+                      onClick={toggleVendaAtiva}
+                      variant={vendaAtiva ? "warning" : "success"}
+                      size="sm"
+                      className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                    >
+                      {vendaAtiva ? '⏸️ Pausar Venda' : '▶️ Iniciar Venda'}
+                    </LoadingButton>
+                    
                     <LoadingButton
                       onClick={() => router.push('/produtos')}
                       variant="secondary"
@@ -382,6 +432,26 @@ export default function PDV() {
                   </div>
                 </div>
               </div>
+
+              {/* INDICADOR VISUAL DE VENDA ATIVA */}
+              {vendaAtiva && (
+                <div className="bg-gradient-to-r from-green-100 to-blue-100 border-2 border-green-400 rounded-lg p-4 mb-6 shadow-lg">
+                  <div className="flex items-center">
+                    <div className="animate-pulse w-4 h-4 bg-green-500 rounded-full mr-4"></div>
+                    <div className="flex-1">
+                      <h3 className="text-green-800 font-bold text-lg">🔥 VENDA ATIVA</h3>
+                      <p className="text-green-700 text-sm mt-1">
+                        Escaneie produtos continuamente. O sistema adicionará automaticamente à venda!
+                      </p>
+                      <div className="mt-2 text-xs text-green-600 space-y-1">
+                        <p>• Use um leitor de código de barras para máxima velocidade</p>
+                        <p>• O foco permanecerá no campo de entrada automaticamente</p>
+                        <p>• Pressione "Pausar Venda" para voltar ao modo manual</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Aviso se não há produtos */}
               {produtosAtivos.length === 0 && (
@@ -416,23 +486,39 @@ export default function PDV() {
                 {/* Coluna 1: Scanner e Input */}
                 <div className="lg:col-span-1 space-y-6">
                   
-                  {/* Input de Código de Barras */}
+                  {/* Input de Código de Barras - ATUALIZADO */}
                   <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4">📱 Scanner de Produtos</h3>
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">
+                      📱 Scanner de Produtos
+                      {vendaAtiva && <span className="ml-2 text-green-600 text-sm">(ATIVO)</span>}
+                    </h3>
                     
                     <form onSubmit={handleCodigoBarrasSubmit} className="space-y-4">
                       <div>
                         <label className="block text-sm font-bold text-gray-800 mb-2">
                           Código de Barras
+                          {vendaAtiva && <span className="ml-2 text-green-600 text-xs">(Auto-foco ativo)</span>}
                         </label>
                         <input
                           ref={inputRef}
                           type="text"
                           value={codigoBarrasInput}
                           onChange={(e) => setCodigoBarrasInput(e.target.value)}
-                          className="w-full border-2 border-gray-400 rounded-lg px-4 py-3 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 shadow-sm text-lg"
-                          placeholder="Escaneie ou digite o código"
+                          onKeyDown={(e) => {
+                            // Se venda ativa e Enter, processar automaticamente
+                            if (e.key === 'Enter' && vendaAtiva && codigoBarrasInput.trim()) {
+                              e.preventDefault()
+                              processarCodigoBarras(codigoBarrasInput)
+                            }
+                          }}
+                          className={`w-full border-2 rounded-lg px-4 py-3 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 shadow-sm text-lg ${
+                            vendaAtiva 
+                              ? 'border-green-500 bg-green-50' 
+                              : 'border-gray-400'
+                          }`}
+                          placeholder={vendaAtiva ? "🔥 VENDA ATIVA - Escaneie os produtos..." : "Escaneie ou digite o código"}
                           disabled={loading || produtosAtivos.length === 0}
+                          autoFocus={vendaAtiva}
                         />
                       </div>
                       
@@ -463,12 +549,15 @@ export default function PDV() {
 
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-sm text-blue-800">
-                        💡 <strong>Dica:</strong> Use um leitor de código de barras conectado ao computador para maior velocidade!
+                        💡 <strong>Dica:</strong> {vendaAtiva 
+                          ? 'No modo ativo, apenas escaneie - o produto será adicionado automaticamente!'
+                          : 'Use um leitor de código de barras conectado ao computador para maior velocidade!'
+                        }
                       </p>
                     </div>
                   </div>
 
-                  {/* Estatísticas Rápidas */}
+                  {/* Estatísticas Rápidas - ATUALIZADO */}
                   <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">📊 Estatísticas</h3>
                     
@@ -486,6 +575,24 @@ export default function PDV() {
                       <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
                         <span className="text-purple-800 font-medium">Itens na Venda</span>
                         <span className="text-purple-600 font-bold">{itensVenda.length}</span>
+                      </div>
+
+                      {/* NOVA ESTATÍSTICA: Status da Venda */}
+                      <div className={`flex justify-between items-center p-3 rounded-lg ${
+                        vendaAtiva 
+                          ? 'bg-green-100 border border-green-300' 
+                          : 'bg-gray-50'
+                      }`}>
+                        <span className={`font-medium ${
+                          vendaAtiva ? 'text-green-800' : 'text-gray-800'
+                        }`}>
+                          Status da Venda
+                        </span>
+                        <span className={`font-bold ${
+                          vendaAtiva ? 'text-green-600' : 'text-gray-600'
+                        }`}>
+                          {vendaAtiva ? '🔥 ATIVA' : '⏸️ Manual'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -525,11 +632,16 @@ export default function PDV() {
                         <p className="text-gray-500 mb-4">
                           {produtosAtivos.length === 0 
                             ? 'Cadastre produtos ativos para começar a vender'
-                            : 'Escaneie códigos de barras para adicionar produtos'
+                            : vendaAtiva
+                              ? '🔥 Escaneie códigos de barras - eles serão adicionados automaticamente!'
+                              : 'Escaneie códigos de barras para adicionar produtos'
                           }
                         </p>
                         <div className="text-sm text-gray-400">
-                          💡 Use o campo acima ou conecte um leitor de código de barras
+                          💡 {vendaAtiva 
+                            ? 'Modo ativo: Use o leitor de código de barras para máxima velocidade'
+                            : 'Use o campo acima ou conecte um leitor de código de barras'
+                          }
                         </div>
                       </div>
                     ) : (
@@ -665,6 +777,7 @@ export default function PDV() {
                           </div>
                           <div className="text-sm text-gray-600 mt-1">
                             {itensVenda.length} {itensVenda.length === 1 ? 'item' : 'itens'} • {itensVenda.reduce((total, item) => total + item.quantidade, 0)} unidades
+                            {vendaAtiva && <span className="ml-2 text-green-600 font-medium">• Venda Ativa 🔥</span>}
                           </div>
                         </div>
                       </>

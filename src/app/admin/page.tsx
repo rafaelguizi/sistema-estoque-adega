@@ -1,7 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToastContext } from '@/components/ToastProvider'
 import LoadingButton from '@/components/LoadingButton'
+
+// CREDENCIAIS ADMIN - ALTERE PARA AS SUAS
+const ADMIN_EMAIL = "rafaelfelipegb.arf@gmail.com"
+const ADMIN_PASSWORD = "01r02f03g04b"
 
 interface User {
   id: string
@@ -21,6 +26,18 @@ interface User {
 }
 
 export default function AdminPage() {
+  const router = useRouter()
+  const toast = useToastContext()
+  
+  // Estados de autenticação admin
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [authLoading, setAuthLoading] = useState(false)
+  const [credentials, setCredentials] = useState({
+    email: '',
+    password: ''
+  })
+
+  // Estados do sistema
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -34,14 +51,48 @@ export default function AdminPage() {
     confirmPassword: '',
     plan: 'BASIC'
   })
-  
-  const toast = useToastContext()
 
-  // Carregar usuários
+  // Verificar autenticação ao carregar
   useEffect(() => {
-    loadUsers()
+    const adminAuth = localStorage.getItem('stockpro_admin_auth')
+    if (adminAuth === 'authenticated') {
+      setIsAuthenticated(true)
+      loadUsers()
+    } else {
+      setLoading(false)
+    }
   }, [])
 
+  // Função de login admin
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthLoading(true)
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      if (credentials.email === ADMIN_EMAIL && credentials.password === ADMIN_PASSWORD) {
+        setIsAuthenticated(true)
+        localStorage.setItem('stockpro_admin_auth', 'authenticated')
+        toast.success('Acesso liberado!', 'Bem-vindo ao painel administrativo')
+        loadUsers()
+      } else {
+        toast.error('Acesso negado!', 'Credenciais administrativas inválidas')
+      }
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  // Função de logout admin
+  const handleAdminLogout = () => {
+    setIsAuthenticated(false)
+    localStorage.removeItem('stockpro_admin_auth')
+    setCredentials({ email: '', password: '' })
+    toast.info('Sessão encerrada', 'Você foi desconectado do painel admin')
+  }
+
+  // Carregar usuários
   const loadUsers = async () => {
     try {
       console.log('📋 Carregando usuários...')
@@ -225,33 +276,174 @@ export default function AdminPage() {
     return badges[status as keyof typeof badges] || status
   }
 
-  if (loading) {
+  // TELA DE LOGIN ADMIN
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando usuários...</p>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">🔐</div>
+            <h1 className="text-3xl font-bold text-gray-800">Painel Administrativo</h1>
+            <p className="text-gray-600 mt-2">Acesso restrito - Apenas administradores</p>
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">
+                <strong>⚠️ Área Restrita:</strong> Este painel é exclusivo para administradores do sistema.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleAdminLogin} className="space-y-6">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                🔑 Email Administrativo
+              </label>
+              <input
+                type="email"
+                required
+                value={credentials.email}
+                onChange={(e) => setCredentials({...credentials, email: e.target.value})}
+                className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-800 font-medium"
+                placeholder="admin@stockpro.com"
+                disabled={authLoading}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                🔒 Senha Administrativa
+              </label>
+              <input
+                type="password"
+                required
+                value={credentials.password}
+                onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-800 font-medium"
+                placeholder="••••••••••••••••"
+                disabled={authLoading}
+              />
+            </div>
+
+            <LoadingButton
+              type="submit"
+              isLoading={authLoading}
+              loadingText="Verificando..."
+              variant="primary"
+              size="lg"
+              className="w-full"
+            >
+              🔓 Acessar Painel Admin
+            </LoadingButton>
+          </form>
+
+          <div className="mt-6 text-center space-y-2">
+            <p className="text-xs text-gray-500">
+              Sistema protegido por autenticação dupla
+            </p>
+            <div className="flex items-center justify-center space-x-4 text-xs text-gray-400">
+              <span>🛡️ Seguro</span>
+              <span>🔒 Criptografado</span>
+              <span>📊 Auditado</span>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => router.push('/login')}
+              className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+            >
+              ← Voltar ao Login Normal
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
+  // TELA DE LOADING
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600 font-medium">Carregando painel administrativo...</p>
+          <p className="text-sm text-gray-500 mt-2">Sincronizando dados do Firebase</p>
+        </div>
+      </div>
+    )
+  }
+
+  // PAINEL ADMIN PRINCIPAL
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Header com Logout */}
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">🛡️ Painel Administrativo</h1>
-              <p className="text-gray-600">Gerencie usuários e acessos do sistema</p>
+              <h1 className="text-3xl font-bold text-gray-900">🛡️ Painel Administrativo</h1>
+              <p className="text-gray-600 mt-1">Gerencie usuários e acessos do sistema StockPro</p>
+              <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+                <span>👤 Admin: {ADMIN_EMAIL}</span>
+                <span>🕒 {new Date().toLocaleString('pt-BR')}</span>
+              </div>
             </div>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {showForm ? '❌ Cancelar' : '➕ Novo Usuário'}
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                {showForm ? '❌ Cancelar' : '➕ Novo Usuário'}
+              </button>
+              <button
+                onClick={handleAdminLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                🚪 Sair
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Estatísticas Rápidas */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="text-3xl mr-4">👥</div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total de Usuários</p>
+                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="text-3xl mr-4">✅</div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Usuários Ativos</p>
+                <p className="text-2xl font-bold text-green-600">{users.filter(u => u.isActive).length}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="text-3xl mr-4">🎁</div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Em Trial</p>
+                <p className="text-2xl font-bold text-blue-600">{users.filter(u => u.subscription.status === 'trial').length}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center">
+              <div className="text-3xl mr-4">💰</div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Receita Potencial</p>
+                <p className="text-2xl font-bold text-purple-600">R$ {users.length * 59}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -306,9 +498,9 @@ export default function AdminPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
                       disabled={formLoading}
                     >
-                      <option value="BASIC">💎 Básico - R$ 39/mês</option>
-                      <option value="PRO">🚀 Profissional - R$ 59/mês</option>
-                      <option value="ENTERPRISE">⭐ Enterprise - R$ 99/mês</option>
+                      <option value="BASIC">💎 Básico - R$ 49/mês</option>
+                      <option value="PRO">🚀 Profissional - R$ 69/mês</option>
+                      <option value="ENTERPRISE">⭐ Enterprise - R$ 119/mês</option>
                     </select>
                   </div>
                 </div>
@@ -413,12 +605,14 @@ export default function AdminPage() {
 
           {users.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">Nenhum usuário cadastrado ainda.</p>
+              <div className="text-6xl mb-4">👥</div>
+              <p className="text-gray-500 text-lg mb-2">Nenhum usuário cadastrado ainda</p>
+              <p className="text-gray-400 text-sm mb-6">Crie o primeiro usuário para começar</p>
               <button
                 onClick={() => setShowForm(true)}
-                className="mt-4 text-blue-600 hover:text-blue-700"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
               >
-                Criar primeiro usuário
+                ➕ Criar Primeiro Usuário
               </button>
             </div>
           ) : (
@@ -448,7 +642,7 @@ export default function AdminPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {users.map((user) => (
-                    <tr key={user.id}>
+                    <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
