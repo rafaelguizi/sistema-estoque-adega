@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
 import { useToastContext } from '@/components/ToastProvider'
 
 export default function LoginPage() {
@@ -10,7 +9,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
-  const { login } = useAuth()
   const router = useRouter()
   const toast = useToastContext()
 
@@ -19,12 +17,27 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
+    console.log('🔑 Tentando fazer login...')
+
     try {
-      await login(email, password)
+      // Importar Firebase dinamicamente
+      const { auth } = await import('@/lib/firebase')
+      const { signInWithEmailAndPassword } = await import('firebase/auth')
+
+      if (!auth) {
+        console.log('❌ Firebase Auth não disponível')
+        throw new Error('Firebase Auth não inicializado')
+      }
+
+      console.log('🔥 Fazendo login com Firebase...')
+      await signInWithEmailAndPassword(auth, email, password)
+      
+      console.log('✅ Login realizado com sucesso!')
       toast.success('Login realizado!', 'Bem-vindo de volta!')
       router.push('/dashboard')
+      
     } catch (error: any) {
-      console.error('Erro de autenticação:', error)
+      console.error('❌ Erro de autenticação:', error)
       
       let errorMessage = 'Erro ao fazer login'
       
@@ -38,7 +51,7 @@ export default function LoginPage() {
         errorMessage = 'Muitas tentativas. Aguarde alguns minutos.'
       } else if (error.code === 'auth/invalid-credential') {
         errorMessage = 'Email ou senha incorretos.'
-      } else if (error.message === 'Firebase não inicializado') {
+      } else if (error.message.includes('Firebase') && error.message.includes('não inicializado')) {
         errorMessage = 'Sistema temporariamente indisponível.'
       } else {
         errorMessage = 'Erro de conexão. Tente novamente.'
@@ -84,7 +97,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
                 placeholder="seu@email.com"
                 disabled={loading}
               />
@@ -101,7 +114,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
                 placeholder="Sua senha"
                 disabled={loading}
               />
@@ -135,6 +148,13 @@ export default function LoginPage() {
               <li>• Contas são criadas apenas pelo administrador do sistema</li>
               <li>• Em caso de problemas, entre em contato com o suporte</li>
             </ul>
+          </div>
+
+          {/* Debug Info */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mt-4">
+            <p className="text-xs text-gray-600">
+              <strong>Debug:</strong> Login direto com Firebase (sem contexto)
+            </p>
           </div>
         </form>
       </div>

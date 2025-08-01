@@ -275,7 +275,7 @@ export default function AdminPage() {
                       required
                       value={formData.companyName}
                       onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
                       placeholder="Ex: Adega do João"
                       disabled={formLoading}
                     />
@@ -290,7 +290,7 @@ export default function AdminPage() {
                       required
                       value={formData.companyEmail}
                       onChange={(e) => setFormData({...formData, companyEmail: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
                       placeholder="contato@empresa.com"
                       disabled={formLoading}
                     />
@@ -303,7 +303,7 @@ export default function AdminPage() {
                     <select
                       value={formData.plan}
                       onChange={(e) => setFormData({...formData, plan: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
                       disabled={formLoading}
                     >
                       <option value="BASIC">💎 Básico - R$ 39/mês</option>
@@ -326,7 +326,7 @@ export default function AdminPage() {
                       required
                       value={formData.userName}
                       onChange={(e) => setFormData({...formData, userName: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
                       placeholder="João da Silva"
                       disabled={formLoading}
                     />
@@ -341,7 +341,7 @@ export default function AdminPage() {
                       required
                       value={formData.userEmail}
                       onChange={(e) => setFormData({...formData, userEmail: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
                       placeholder="joao@empresa.com"
                       disabled={formLoading}
                     />
@@ -356,7 +356,7 @@ export default function AdminPage() {
                       required
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
                       placeholder="Mínimo 6 caracteres"
                       minLength={6}
                       disabled={formLoading}
@@ -372,7 +372,7 @@ export default function AdminPage() {
                       required
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-500"
                       placeholder="Digite a senha novamente"
                       minLength={6}
                       disabled={formLoading}
