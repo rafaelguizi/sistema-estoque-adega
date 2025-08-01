@@ -423,7 +423,7 @@ export default function Movimentacoes() {
                       }`}
                       disabled={isLoading('salvando')}
                     >
-                      �� Entrada
+                      📥 Entrada
                     </button>
                     <button
                       type="button"
@@ -435,7 +435,7 @@ export default function Movimentacoes() {
                       }`}
                       disabled={isLoading('salvando')}
                     >
-                      �� Saída
+                      📤 Saída
                     </button>
                   </div>
                 </div>
@@ -488,7 +488,7 @@ export default function Movimentacoes() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Tipo:</span>
-                            <span className="font-bold">{formData.tipo === 'entrada' ? '📥 Entrada' : '�� Saída'}</span>
+                            <span className="font-bold">{formData.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Quantidade:</span>
@@ -660,7 +660,7 @@ export default function Movimentacoes() {
                                 ? 'bg-green-100 text-green-800' 
                                 : 'bg-red-100 text-red-800'
                             }`}>
-                              {mov.tipo === 'entrada' ? '�� Entrada' : '📤 Saída'}
+                              {mov.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
