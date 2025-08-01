@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
 import { useToastContext } from '@/components/ToastProvider'
 import LoadingButton from '@/components/LoadingButton'
 
@@ -17,7 +16,6 @@ export default function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   
-  const { register } = useAuth()
   const router = useRouter()
   const toast = useToastContext()
 
@@ -57,24 +55,32 @@ export default function RegisterPage() {
     }
 
     try {
+      console.log('🔥 Importando Firebase...')
+      
+      // Importar Firebase dinamicamente
+      const { auth, db } = await import('@/lib/firebase')
+      const { createUserWithEmailAndPassword } = await import('firebase/auth')
+      const { doc, setDoc } = await import('firebase/firestore')
+
+      if (!auth) {
+        console.log('❌ Firebase Auth não disponível')
+        throw new Error('Firebase Auth não inicializado')
+      }
+
       console.log('🔥 Tentando criar usuário no Firebase Auth...')
       
       // 1. Criar usuário no Firebase Auth
-      const userCredential = await register(formData.userEmail, formData.password)
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.userEmail, formData.password)
       console.log('✅ Usuário criado no Firebase Auth com sucesso!', userCredential.user.uid)
       
-      // 2. Salvar dados no Firestore
-      console.log('💾 Tentando salvar dados no Firestore...')
-
-      const { db } = await import('@/lib/firebase')
-      const { doc, setDoc } = await import('firebase/firestore')
-
       if (!db) {
-        console.log('❌ Erro: Firebase Firestore não está disponível')
+        console.log('❌ Firebase Firestore não disponível')
         throw new Error('Firebase Firestore não inicializado')
       }
 
-      // 3. Salvar dados adicionais no Firestore
+      console.log('💾 Tentando salvar dados no Firestore...')
+
+      // 2. Salvar dados adicionais no Firestore
       const userData = {
         companyName: formData.companyName,
         companyEmail: formData.companyEmail,
@@ -99,7 +105,11 @@ export default function RegisterPage() {
 
       toast.success('Conta criada com sucesso!', 'Bem-vindo ao StockPro! Trial de 7 dias iniciado.')
       console.log('🎉 Registro concluído! Redirecionando...')
-      router.push('/dashboard')
+      
+      // Aguardar um pouco antes de redirecionar
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1000)
       
     } catch (error: any) {
       console.error('💥 Erro completo:', error)
@@ -119,12 +129,12 @@ export default function RegisterPage() {
       } else if (error.code === 'auth/invalid-email') {
         errorTitle = 'Email inválido'
         errorMessage = 'Formato de email incorreto'
-      } else if (error.message === 'Firebase não inicializado') {
+      } else if (error.message.includes('Firebase') && error.message.includes('não inicializado')) {
         errorTitle = 'Erro de configuração'
         errorMessage = 'Sistema temporariamente indisponível'
-      } else if (error.message.includes('Firestore')) {
-        errorTitle = 'Erro no banco de dados'
-        errorMessage = 'Problema ao salvar dados. Tente novamente.'
+      } else if (error.message.includes('Network')) {
+        errorTitle = 'Erro de conexão'
+        errorMessage = 'Verifique sua conexão com a internet'
       }
       
       console.log('🚨 Exibindo erro:', errorTitle, '-', errorMessage)
@@ -192,9 +202,9 @@ export default function RegisterPage() {
                 className="block w-full px-4 py-3 text-gray-900 bg-gray-50 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-200"
                 disabled={loading}
               >
-                <option value="BASIC">💎 Básico - R\$ 39/mês</option>
-                <option value="PRO">🚀 Profissional - R\$ 59/mês</option>
-                <option value="ENTERPRISE">⭐ Enterprise - R\$ 99/mês</option>
+                <option value="BASIC">💎 Básico - R$ 39/mês</option>
+                <option value="PRO">🚀 Profissional - R$ 59/mês</option>
+                <option value="ENTERPRISE">⭐ Enterprise - R$ 99/mês</option>
               </select>
             </div>
           </div>
@@ -297,6 +307,13 @@ export default function RegisterPage() {
               <li>✅ Dados sincronizados na nuvem</li>
               <li>✅ Sem compromisso</li>
             </ul>
+          </div>
+
+          {/* Debug Info */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mt-4">
+            <p className="text-xs text-gray-600">
+              <strong>Debug:</strong> Registro direto com Firebase (sem contexto)
+            </p>
           </div>
         </form>
       </div>
