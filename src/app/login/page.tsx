@@ -6,12 +6,11 @@ import { useToastContext } from '@/components/ToastProvider'
 import LoadingButton from '@/components/LoadingButton'
 
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   
-  const { login, register } = useAuth()
+  const { login } = useAuth()
   const router = useRouter()
   const toast = useToastContext()
 
@@ -26,120 +25,119 @@ export default function LoginPage() {
     setLoading(true)
     
     try {
-      if (isLogin) {
-        await login(email, password)
-        toast.success('Login realizado!', 'Bem-vindo de volta!')
-      } else {
-        await register(email, password)
-        toast.success('Conta criada!', 'Bem-vindo ao StockPro!')
-      }
-      
-      router.push('/')
+      await login(email, password)
+      toast.success('Login realizado!', 'Bem-vindo de volta!')
+      router.push('/dashboard')
     } catch (error: any) {
       console.error('Erro de autenticação:', error)
       
+      let errorMessage = 'Tente novamente'
+      let errorTitle = 'Erro de autenticação'
+      
       if (error.code === 'auth/user-not-found') {
-        toast.error('Usuário não encontrado', 'Verifique o email informado')
+        errorTitle = 'Usuário não encontrado'
+        errorMessage = 'Verifique o email informado'
       } else if (error.code === 'auth/wrong-password') {
-        toast.error('Senha incorreta', 'Verifique sua senha')
-      } else if (error.code === 'auth/email-already-in-use') {
-        toast.error('Email já cadastrado', 'Use outro email ou faça login')
-      } else if (error.code === 'auth/weak-password') {
-        toast.error('Senha muito fraca', 'Use pelo menos 6 caracteres')
-      } else {
-        toast.error('Erro de autenticação', 'Tente novamente')
+        errorTitle = 'Senha incorreta'
+        errorMessage = 'Verifique sua senha'
+      } else if (error.code === 'auth/invalid-email') {
+        errorTitle = 'Email inválido'
+        errorMessage = 'Formato de email incorreto'
+      } else if (error.code === 'auth/too-many-requests') {
+        errorTitle = 'Muitas tentativas'
+        errorMessage = 'Aguarde alguns minutos'
+      } else if (error.message === 'Firebase não inicializado') {
+        errorTitle = 'Erro de configuração'
+        errorMessage = 'Firebase não está configurado'
       }
+      
+      toast.error(errorTitle, errorMessage)
+      
+      // Log detalhado para debug
+      console.log('Código do erro:', error.code)
+      console.log('Mensagem do erro:', error.message)
+      console.log('Erro completo:', error)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 sm:p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">🍷 StockPro</h1>
-          <p className="text-gray-600">Sistema de Gestão de Estoque</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-xl">🍷</span>
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            StockPro - Login
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Sistema de Controle de Estoque com Firebase
+          </p>
         </div>
 
-        <div className="flex mb-6">
-          <button
-            onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 px-4 text-center font-medium rounded-l-lg transition-colors ${
-              isLogin 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Login
-          </button>
-          <button
-            onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2 px-4 text-center font-medium rounded-r-lg transition-colors ${
-              !isLogin 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Criar Conta
-          </button>
-        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="seu@email.com"
+                disabled={loading}
+              />
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="seu@email.com"
-              required
-              disabled={loading}
-            />
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Senha
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Sua senha"
+                disabled={loading}
+                minLength={6}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Senha
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="••••••••"
-              required
-              disabled={loading}
-              minLength={6}
-            />
+            <LoadingButton
+              type="submit"
+              isLoading={loading}
+              loadingText="Entrando..."
+              variant="primary"
+              size="lg"
+              className="w-full"
+            >
+              🔑 Entrar com Firebase
+            </LoadingButton>
           </div>
 
-          <LoadingButton
-            type="submit"
-            isLoading={loading}
-            loadingText={isLogin ? 'Entrando...' : 'Criando conta...'}
-            variant="primary"
-            size="lg"
-            className="w-full"
-          >
-            {isLogin ? '🔑 Entrar' : '✨ Criar Conta'}
-          </LoadingButton>
+          <div className="text-center">
+            <a href="/register" className="text-blue-600 hover:text-blue-500">
+              Não tem conta? Cadastre-se aqui
+            </a>
+          </div>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>
-            {isLogin ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-              disabled={loading}
-            >
-              {isLogin ? 'Criar conta' : 'Fazer login'}
-            </button>
-          </p>
+        {/* Debug Info */}
+        <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
+          <p><strong>Debug:</strong> Verifique o console do navegador para mais detalhes</p>
         </div>
       </div>
     </div>
