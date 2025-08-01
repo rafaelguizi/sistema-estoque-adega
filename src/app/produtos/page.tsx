@@ -731,7 +731,7 @@ export default function Produtos() {
                         <div>
                           <span className="text-gray-600">Margem de lucro:</span>
                           <span className="font-bold text-green-600 ml-1">
-                            R\$ {(parseFloat(formData.valorVenda) - parseFloat(formData.valorCompra)).toFixed(2)}
+                            R$ {(parseFloat(formData.valorVenda) - parseFloat(formData.valorCompra)).toFixed(2)}
                           </span>
                         </div>
                         <div>
@@ -874,8 +874,8 @@ export default function Produtos() {
                                 )}
                                 <p><span className="font-medium">Categoria:</span> {produto.categoria}</p>
                                 <p><span className="font-medium">Estoque:</span> {produto.estoque} unidades</p>
-                                <p><span className="font-medium">Compra:</span> R\$ {produto.valorCompra.toFixed(2)}</p>
-                                <p><span className="font-medium">Venda:</span> R\$ {produto.valorVenda.toFixed(2)}</p>
+                                <p><span className="font-medium">Compra:</span> R$ {produto.valorCompra.toFixed(2)}</p>
+                                <p><span className="font-medium">Venda:</span> R$ {produto.valorVenda.toFixed(2)}</p>
                               </div>
 
                               {/* Status do estoque */}
@@ -1010,8 +1010,8 @@ export default function Produtos() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <div>Compra: R\$ {produto.valorCompra.toFixed(2)}</div>
-                              <div>Venda: R\$ {produto.valorVenda.toFixed(2)}</div>
+                              <div>Compra: R$ {produto.valorCompra.toFixed(2)}</div>
+                              <div>Venda: R$ {produto.valorVenda.toFixed(2)}</div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -1087,7 +1087,7 @@ export default function Produtos() {
 
                 <div className="text-center p-3 bg-white rounded-lg shadow">
                   <div className="text-lg sm:text-xl font-bold text-purple-600">
-                    R\$ {produtos.filter(p => p.ativo).reduce((total, p) => total + (p.estoque * p.valorCompra), 0).toFixed(2)}
+                    R$ {produtos.filter(p => p.ativo).reduce((total, p) => total + (p.estoque * p.valorCompra), 0).toFixed(2)}
                   </div>
                   <div className="text-purple-600 text-xs sm:text-sm font-medium">Valor Estoque</div>
                 </div>

@@ -516,7 +516,7 @@ export default function Movimentacoes() {
                                   ? 'bg-green-200 text-green-800' 
                                   : 'bg-red-200 text-red-800'
                               }`}>
-                                {formData.tipo === 'entrada' ? '📥 Entrada' : '�� Saída'}
+                                {formData.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
@@ -525,11 +525,11 @@ export default function Movimentacoes() {
                             </div>
                             <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
                               <span className="text-gray-800 font-medium">Valor unitário:</span>
-                              <span className="font-bold text-gray-900">R\$ {valorUnitario.toFixed(2)}</span>
+                              <span className="font-bold text-gray-900">R$ {valorUnitario.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-200 to-green-200 rounded-lg border-2 border-blue-400 shadow-md">
                               <span className="text-gray-900 font-bold text-base">Valor total:</span>
-                              <span className="font-bold text-blue-800 text-lg">R\$ {valorTotal.toFixed(2)}</span>
+                              <span className="font-bold text-blue-800 text-lg">R$ {valorTotal.toFixed(2)}</span>
                             </div>
                             <div className="bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded-r-lg">
                               <p className="text-sm text-yellow-800 font-medium">
@@ -622,8 +622,8 @@ export default function Movimentacoes() {
                               <div className="space-y-1 text-xs text-gray-600">
                                 <p><span className="font-medium">Código:</span> #{mov.codigo}</p>
                                 <p><span className="font-medium">Quantidade:</span> {mov.quantidade} unidades</p>
-                                <p><span className="font-medium">Valor unitário:</span> R\$ {mov.valorUnitario.toFixed(2)}</p>
-                                <p><span className="font-medium">Valor total:</span> R\$ {mov.valorTotal.toFixed(2)}</p>
+                                <p><span className="font-medium">Valor unitário:</span> R$ {mov.valorUnitario.toFixed(2)}</p>
+                                <p><span className="font-medium">Valor total:</span> R$ {mov.valorTotal.toFixed(2)}</p>
                                 {mov.observacao && (
                                   <p><span className="font-medium">Obs:</span> {mov.observacao}</p>
                                 )}
@@ -693,15 +693,15 @@ export default function Movimentacoes() {
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-red-100 text-red-800'
                               }`}>
-                                {mov.tipo === 'entrada' ? '📥 Entrada' : '�� Saída'}
+                                {mov.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {mov.quantidade} unidades
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <div>Unit: R\$ {mov.valorUnitario.toFixed(2)}</div>
-                              <div className="font-medium">Total: R\$ {mov.valorTotal.toFixed(2)}</div>
+                              <div>Unit: R$ {mov.valorUnitario.toFixed(2)}</div>
+                              <div className="font-medium">Total: R$ {mov.valorTotal.toFixed(2)}</div>
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                               {mov.observacao || '-'}
@@ -747,14 +747,14 @@ export default function Movimentacoes() {
                 
                 <div className="text-center p-3 bg-white rounded-lg shadow">
                   <div className="text-lg sm:text-xl font-bold text-blue-600">
-                    R\$ {movimentacoes.filter(m => m.tipo === 'entrada').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
+                    R$ {movimentacoes.filter(m => m.tipo === 'entrada').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
                   </div>
                   <div className="text-blue-600 text-xs sm:text-sm font-medium">Valor Entradas</div>
                 </div>
                 
                 <div className="text-center p-3 bg-white rounded-lg shadow">
                   <div className="text-lg sm:text-xl font-bold text-purple-600">
-                    R\$ {movimentacoes.filter(m => m.tipo === 'saida').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
+                    R$ {movimentacoes.filter(m => m.tipo === 'saida').reduce((total, m) => total + m.valorTotal, 0).toFixed(2)}
                   </div>
                   <div className="text-purple-600 text-xs sm:text-sm font-medium">Valor Saídas</div>
                 </div>
