@@ -4,8 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToastContext } from '@/components/ToastProvider'
 import LoadingButton from '@/components/LoadingButton'
-import { doc, setDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -65,14 +63,17 @@ export default function RegisterPage() {
       const userCredential = await register(formData.userEmail, formData.password)
       console.log('✅ Usuário criado no Firebase Auth com sucesso!', userCredential.user.uid)
       
-      // 2. Verificar se o Firebase está disponível
+      // 2. Salvar dados no Firestore
+      console.log('💾 Tentando salvar dados no Firestore...')
+
+      const { db } = await import('@/lib/firebase')
+      const { doc, setDoc } = await import('firebase/firestore')
+
       if (!db) {
         console.log('❌ Erro: Firebase Firestore não está disponível')
         throw new Error('Firebase Firestore não inicializado')
       }
-      
-      console.log('💾 Tentando salvar dados no Firestore...')
-      
+
       // 3. Salvar dados adicionais no Firestore
       const userData = {
         companyName: formData.companyName,
@@ -90,9 +91,9 @@ export default function RegisterPage() {
           startDate: new Date().toISOString()
         }
       }
-      
+
       console.log('📄 Dados para salvar:', userData)
-      
+
       await setDoc(doc(db, 'users', userCredential.user.uid), userData)
       console.log('✅ Dados salvos no Firestore com sucesso!')
 
@@ -191,9 +192,9 @@ export default function RegisterPage() {
                 className="block w-full px-4 py-3 text-gray-900 bg-gray-50 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-200"
                 disabled={loading}
               >
-                <option value="BASIC">💎 Básico - R$ 39/mês</option>
-                <option value="PRO">🚀 Profissional - R$ 59/mês</option>
-                <option value="ENTERPRISE">⭐ Enterprise - R$ 99/mês</option>
+                <option value="BASIC">💎 Básico - R\$ 39/mês</option>
+                <option value="PRO">🚀 Profissional - R\$ 59/mês</option>
+                <option value="ENTERPRISE">⭐ Enterprise - R\$ 99/mês</option>
               </select>
             </div>
           </div>

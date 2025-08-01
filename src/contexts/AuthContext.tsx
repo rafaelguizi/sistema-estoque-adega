@@ -8,7 +8,6 @@ import {
   onAuthStateChanged,
   UserCredential
 } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
 
 interface AuthContextType {
   user: User | null
@@ -31,22 +30,36 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [auth, setAuth] = useState<any>(null)
 
   useEffect(() => {
-    if (!auth) {
-      console.log('⚠️ Firebase Auth não está disponível')
-      setLoading(false)
-      return
+    // Importar Firebase apenas no cliente
+    const initAuth = async () => {
+      try {
+        const { auth: firebaseAuth } = await import('@/lib/firebase')
+        setAuth(firebaseAuth)
+
+        if (!firebaseAuth) {
+          console.log('⚠️ Firebase Auth não está disponível')
+          setLoading(false)
+          return
+        }
+
+        console.log('🔥 Configurando listener de autenticação...')
+        const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+          console.log('👤 Estado de autenticação mudou:', user ? 'Logado' : 'Deslogado')
+          setUser(user)
+          setLoading(false)
+        })
+
+        return unsubscribe
+      } catch (error) {
+        console.error('❌ Erro ao inicializar Auth:', error)
+        setLoading(false)
+      }
     }
 
-    console.log('🔥 Configurando listener de autenticação...')
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('👤 Estado de autenticação mudou:', user ? 'Logado' : 'Deslogado')
-      setUser(user)
-      setLoading(false)
-    })
-
-    return unsubscribe
+    initAuth()
   }, [])
 
   const login = async (email: string, password: string): Promise<UserCredential> => {
