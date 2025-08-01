@@ -423,7 +423,7 @@ export default function Movimentacoes() {
                       }`}
                       disabled={isLoading('salvando')}
                     >
-                      �� Entrada
+                      📥 Entrada
                     </button>
                     <button
                       type="button"
@@ -495,7 +495,7 @@ export default function Movimentacoes() {
                                 ? 'bg-green-200 text-green-800' 
                                 : 'bg-red-200 text-red-800'
                             }`}>
-                              {formData.tipo === 'entrada' ? '📥 Entrada' : '�� Saída'}
+                              {formData.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
                             </span>
                           </div>
                           <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
@@ -670,7 +670,7 @@ export default function Movimentacoes() {
                                 ? 'bg-green-100 text-green-800' 
                                 : 'bg-red-100 text-red-800'
                             }`}>
-                              {mov.tipo === 'entrada' ? '�� Entrada' : '📤 Saída'}
+                              {mov.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
