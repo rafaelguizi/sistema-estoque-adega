@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToastContext } from '@/components/ToastProvider'
 import { useLoading } from '@/hooks/useLoading'
@@ -67,8 +67,8 @@ export default function Produtos() {
     'Informática'
   ]
 
-  // Carregar produtos
-  const carregarProdutos = useCallback(async () => {
+  // Carregar produtos - SEM LOOP INFINITO
+  const carregarProdutos = async () => {
     await withLoading('carregando', async () => {
       await new Promise(resolve => setTimeout(resolve, 800))
 
@@ -84,15 +84,14 @@ export default function Produtos() {
           setProdutos(produtosMigrados)
         } catch (error) {
           console.error('Erro ao carregar produtos:', error)
-          toast.error('Erro ao carregar', 'Não foi possível carregar os produtos')
         }
       }
     })
-  }, [withLoading, toast])
+  }
 
   useEffect(() => {
     carregarProdutos()
-  }, [carregarProdutos])
+  }, [])
 
   const salvarProdutos = (novosProdutos: Produto[]) => {
     localStorage.setItem('stockpro_produtos', JSON.stringify(novosProdutos))
@@ -727,7 +726,7 @@ export default function Produtos() {
                       <div>
                         <span className="text-gray-600">Margem de lucro:</span>
                         <span className="font-bold text-green-600 ml-1">
-                          R$ {(parseFloat(formData.valorVenda) - parseFloat(formData.valorCompra)).toFixed(2)}
+                          R\$ {(parseFloat(formData.valorVenda) - parseFloat(formData.valorCompra)).toFixed(2)}
                         </span>
                       </div>
                       <div>
@@ -870,8 +869,8 @@ export default function Produtos() {
                               )}
                               <p><span className="font-medium">Categoria:</span> {produto.categoria}</p>
                               <p><span className="font-medium">Estoque:</span> {produto.estoque} unidades</p>
-                              <p><span className="font-medium">Compra:</span> R$ {produto.valorCompra.toFixed(2)}</p>
-                              <p><span className="font-medium">Venda:</span> R$ {produto.valorVenda.toFixed(2)}</p>
+                              <p><span className="font-medium">Compra:</span> R\$ {produto.valorCompra.toFixed(2)}</p>
+                              <p><span className="font-medium">Venda:</span> R\$ {produto.valorVenda.toFixed(2)}</p>
                             </div>
 
                             {/* Status do estoque */}
@@ -962,7 +961,7 @@ export default function Produtos() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-white divide-y divide-gray-200">
                       {produtosFiltrados.map((produto) => (
                         <tr key={produto.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -1006,8 +1005,8 @@ export default function Produtos() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div>Compra: R$ {produto.valorCompra.toFixed(2)}</div>
-                            <div>Venda: R$ {produto.valorVenda.toFixed(2)}</div>
+                            <div>Compra: R\$ {produto.valorCompra.toFixed(2)}</div>
+                            <div>Venda: R\$ {produto.valorVenda.toFixed(2)}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -1083,7 +1082,7 @@ export default function Produtos() {
 
               <div className="text-center p-3 bg-white rounded-lg shadow">
                 <div className="text-lg sm:text-xl font-bold text-purple-600">
-                  R$ {produtos.filter(p => p.ativo).reduce((total, p) => total + (p.estoque * p.valorCompra), 0).toFixed(2)}
+                  R\$ {produtos.filter(p => p.ativo).reduce((total, p) => total + (p.estoque * p.valorCompra), 0).toFixed(2)}
                 </div>
                 <div className="text-purple-600 text-xs sm:text-sm font-medium">Valor Estoque</div>
               </div>
