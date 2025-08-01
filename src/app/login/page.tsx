@@ -3,12 +3,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToastContext } from '@/components/ToastProvider'
-import LoadingButton from '@/components/LoadingButton'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   
   const { login } = useAuth()
   const router = useRouter()
@@ -16,14 +16,9 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!email || !password) {
-      toast.error('Campos obrigatórios', 'Preencha email e senha!')
-      return
-    }
-
     setLoading(true)
-    
+    setError('')
+
     try {
       await login(email, password)
       toast.success('Login realizado!', 'Bem-vindo de volta!')
@@ -31,32 +26,25 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error('Erro de autenticação:', error)
       
-      let errorMessage = 'Tente novamente'
-      let errorTitle = 'Erro de autenticação'
+      let errorMessage = 'Erro ao fazer login'
       
       if (error.code === 'auth/user-not-found') {
-        errorTitle = 'Usuário não encontrado'
-        errorMessage = 'Verifique o email informado'
+        errorMessage = 'Usuário não encontrado. Verifique o email informado.'
       } else if (error.code === 'auth/wrong-password') {
-        errorTitle = 'Senha incorreta'
-        errorMessage = 'Verifique sua senha'
+        errorMessage = 'Senha incorreta. Verifique sua senha.'
       } else if (error.code === 'auth/invalid-email') {
-        errorTitle = 'Email inválido'
-        errorMessage = 'Formato de email incorreto'
+        errorMessage = 'Formato de email inválido.'
       } else if (error.code === 'auth/too-many-requests') {
-        errorTitle = 'Muitas tentativas'
-        errorMessage = 'Aguarde alguns minutos'
+        errorMessage = 'Muitas tentativas. Aguarde alguns minutos.'
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Email ou senha incorretos.'
       } else if (error.message === 'Firebase não inicializado') {
-        errorTitle = 'Erro de configuração'
-        errorMessage = 'Firebase não está configurado'
+        errorMessage = 'Sistema temporariamente indisponível.'
+      } else {
+        errorMessage = 'Erro de conexão. Tente novamente.'
       }
       
-      toast.error(errorTitle, errorMessage)
-      
-      // Log detalhado para debug
-      console.log('Código do erro:', error.code)
-      console.log('Mensagem do erro:', error.message)
-      console.log('Erro completo:', error)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -67,17 +55,23 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">🍷</span>
+            <span className="text-white font-bold text-xl">SP</span>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             StockPro - Login
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sistema de Controle de Estoque com Firebase
+            Sistema de Controle de Estoque
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -110,35 +104,39 @@ export default function LoginPage() {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Sua senha"
                 disabled={loading}
-                minLength={6}
               />
             </div>
           </div>
 
           <div>
-            <LoadingButton
+            <button
               type="submit"
-              isLoading={loading}
-              loadingText="Entrando..."
-              variant="primary"
-              size="lg"
-              className="w-full"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-all duration-200"
             >
-              🔑 Entrar com Firebase
-            </LoadingButton>
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
           </div>
 
           <div className="text-center">
-            <a href="/register" className="text-blue-600 hover:text-blue-500">
-              Não tem conta? Cadastre-se aqui
-            </a>
+            <p className="text-sm text-gray-600">
+              Precisa de acesso?{' '}
+              <a href="/register" className="text-blue-600 hover:text-blue-500 font-medium">
+                Solicite uma conta aqui
+              </a>
+            </p>
+          </div>
+
+          {/* Informações para o administrador */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+            <h4 className="text-sm font-medium text-blue-800 mb-2">ℹ️ Informações</h4>
+            <ul className="text-xs text-blue-700 space-y-1">
+              <li>• Use o email e senha fornecidos pelo administrador</li>
+              <li>• Contas são criadas apenas pelo administrador do sistema</li>
+              <li>• Em caso de problemas, entre em contato com o suporte</li>
+            </ul>
           </div>
         </form>
-
-        {/* Debug Info */}
-        <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
-          <p><strong>Debug:</strong> Verifique o console do navegador para mais detalhes</p>
-        </div>
       </div>
     </div>
   )
