@@ -23,4 +23,48 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+/* FIX RESPONSIVO - DESKTOP FIRST */
+@media (min-width: 1025px) {
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  /* Força desktop layout */
+  .mobile-only {
+    display: none !important;
+  }
+  
+  .desktop-layout {
+    display: block !important;
+  }
+}
+
+/* TABLET */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* MOBILE REAL */
+@media (max-width: 640px) {
+  .desktop-layout {
+    display: none !important;
+  }
+  
+  .mobile-only {
+    display: block !important;
+  }
+}
+
+/* FIX PARA ESCALA 125% */
+@media (min-width: 1200px) {
+  body {
+    zoom: 1;
+    transform-origin: 0 0;
+  }
 }
