@@ -6,7 +6,6 @@ import { useFirestore } from '@/hooks/useFirestore'
 import { useToastContext } from '@/components/ToastProvider'
 import LoadingButton from '@/components/LoadingButton'
 import MobileHeader from '@/components/MobileHeader'
-import AlertSystem from '@/components/AlertSystem'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface Produto {
@@ -155,9 +154,6 @@ export default function Dashboard() {
 
         <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
 
-          {/* Sistema de Alertas */}
-          <AlertSystem showInDashboard={true} />
-
           {/* Loading State */}
           {isDataLoading && (
             <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12 mb-6">
@@ -208,42 +204,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* 🆕 ALERTAS DE VALIDADE CRÍTICOS */}
-              {totalProdutosComProblemaValidade > 0 && (
-                <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <span className="text-2xl">⚠️</span>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-800">
-                        Alertas de Validade Críticos!
-                      </h3>
-                      <div className="mt-2 text-sm text-red-700">
-                        <ul className="list-disc list-inside space-y-1">
-                          {alertasValidade.vencidos.length > 0 && (
-                            <li><strong>{alertasValidade.vencidos.length} produto(s) vencido(s)</strong></li>
-                          )}
-                          {alertasValidade.vencendoHoje.length > 0 && (
-                            <li><strong>{alertasValidade.vencendoHoje.length} produto(s) vencendo hoje</strong></li>
-                          )}
-                          {alertasValidade.vencendoEm7Dias.length > 0 && (
-                            <li>{alertasValidade.vencendoEm7Dias.length} produto(s) vencendo em até 7 dias</li>
-                          )}
-                        </ul>
-                        <button
-                          onClick={() => router.push('/relatorios?tab=validade')}
-                          className="mt-2 text-red-800 underline hover:text-red-900 font-medium"
-                        >
-                          Ver detalhes nos relatórios →
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Cards de Estatísticas - ATUALIZADO */}
+              {/* Cards de Estatísticas */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
 
                 {/* Total de Produtos */}
@@ -299,92 +260,13 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-green-100 text-xs sm:text-sm">Faturamento ({faturamentoMensal.mesAno})</p>
-                      <p className="text-lg sm:text-xl font-bold">R$ {faturamentoMensal.totalFaturamento.toFixed(2)}</p>
+                      <p className="text-lg sm:text-xl font-bold">R\$ {faturamentoMensal.totalFaturamento.toFixed(2)}</p>
                       <p className="text-green-100 text-xs">{faturamentoMensal.quantidadeVendas} vendas</p>
                     </div>
                     <div className="text-2xl sm:text-3xl ml-2">💰</div>
                   </div>
                 </div>
               </div>
-
-              {/* 🆕 DETALHES DOS ALERTAS DE VALIDADE */}
-              {(alertasValidade.vencidos.length > 0 || alertasValidade.vencendoHoje.length > 0 || alertasValidade.vencendoEm7Dias.length > 0) && (
-                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    📅 Controle de Validade
-                  </h3>
-
-                  <div className="space-y-4">
-                    {/* Produtos vencidos */}
-                    {alertasValidade.vencidos.length > 0 && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
-                        <h4 className="font-bold text-red-800 mb-2 flex items-center text-sm sm:text-base">
-                          🚨 Produtos VENCIDOS ({alertasValidade.vencidos.length})
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                          {alertasValidade.vencidos.slice(0, 6).map(produto => (
-                            <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-red-200">
-                              <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
-                              <p className="text-xs text-gray-500">#{produto.codigo}</p>
-                              <p className="text-xs text-red-600 font-medium">
-                                Venceu em: {produto.dataValidade ? new Date(produto.dataValidade).toLocaleDateString('pt-BR') : 'N/A'}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                        {alertasValidade.vencidos.length > 6 && (
-                          <p className="text-red-600 text-xs sm:text-sm mt-2">
-                            +{alertasValidade.vencidos.length - 6} produtos também estão vencidos
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Produtos vencendo hoje */}
-                    {alertasValidade.vencendoHoje.length > 0 && (
-                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4">
-                        <h4 className="font-bold text-orange-800 mb-2 flex items-center text-sm sm:text-base">
-                          ⏰ Produtos vencendo HOJE ({alertasValidade.vencendoHoje.length})
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                          {alertasValidade.vencendoHoje.slice(0, 6).map(produto => (
-                            <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-orange-200">
-                              <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
-                              <p className="text-xs text-gray-500">#{produto.codigo}</p>
-                              <p className="text-xs text-orange-600 font-medium">Vence hoje!</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Produtos vencendo em 7 dias */}
-                    {alertasValidade.vencendoEm7Dias.length > 0 && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
-                        <h4 className="font-bold text-yellow-800 mb-2 flex items-center text-sm sm:text-base">
-                          📆 Produtos vencendo em até 7 dias ({alertasValidade.vencendoEm7Dias.length})
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                          {alertasValidade.vencendoEm7Dias.slice(0, 6).map(produto => {
-                            const diasParaVencer = produto.dataValidade ? 
-                              Math.ceil((new Date(produto.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0
-                            
-                            return (
-                              <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-yellow-200">
-                                <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
-                                <p className="text-xs text-gray-500">#{produto.codigo}</p>
-                                <p className="text-xs text-yellow-600 font-medium">
-                                  Vence em {diasParaVencer} dia{diasParaVencer !== 1 ? 's' : ''}
-                                </p>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Informativo sobre Faturamento Mensal */}
               {faturamentoMensal.totalFaturamento > 0 && (
@@ -396,9 +278,9 @@ export default function Dashboard() {
                         Faturamento de {faturamentoMensal.mesAno}
                       </h3>
                       <div className="mt-2 text-xs sm:text-sm text-green-700 space-y-1">
-                        <p>• <strong>Total faturado:</strong> R$ {faturamentoMensal.totalFaturamento.toFixed(2)}</p>
+                        <p>• <strong>Total faturado:</strong> R\$ {faturamentoMensal.totalFaturamento.toFixed(2)}</p>
                         <p>• <strong>Número de vendas:</strong> {faturamentoMensal.quantidadeVendas} transações</p>
-                        <p>• <strong>Ticket médio:</strong> R$ {faturamentoMensal.quantidadeVendas > 0 ? (faturamentoMensal.totalFaturamento / faturamentoMensal.quantidadeVendas).toFixed(2) : '0.00'}</p>
+                        <p>• <strong>Ticket médio:</strong> R\$ {faturamentoMensal.quantidadeVendas > 0 ? (faturamentoMensal.totalFaturamento / faturamentoMensal.quantidadeVendas).toFixed(2) : '0.00'}</p>
                         <p className="text-green-600 font-medium">💡 O faturamento zera automaticamente todo dia 1º do mês</p>
                       </div>
                     </div>
@@ -406,8 +288,8 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Alertas Manuais (caso o AlertSystem não apareça) */}
-              {(produtosEstoqueBaixo.length > 0 || produtosEstoqueZerado.length > 0) && (
+              {/* 🚨 ALERTAS DE ESTOQUE - ÚNICO BLOCO */}
+              {(produtosEstoqueBaixo.length > 0 || produtosEstoqueZerado.length > 0 || totalProdutosComProblemaValidade > 0) && (
                 <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
                   <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
                     🚨 Alertas de Estoque
@@ -461,11 +343,77 @@ export default function Dashboard() {
                         )}
                       </div>
                     )}
+
+                    {/* 🆕 ALERTAS DE VALIDADE INTEGRADOS */}
+                    {alertasValidade.vencidos.length > 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                        <h4 className="font-bold text-red-800 mb-2 flex items-center text-sm sm:text-base">
+                          🚨 Produtos VENCIDOS ({alertasValidade.vencidos.length})
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                          {alertasValidade.vencidos.slice(0, 6).map(produto => (
+                            <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-red-200">
+                              <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
+                              <p className="text-xs text-gray-500">#{produto.codigo}</p>
+                              <p className="text-xs text-red-600 font-medium">
+                                Venceu em: {produto.dataValidade ? new Date(produto.dataValidade).toLocaleDateString('pt-BR') : 'N/A'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        {alertasValidade.vencidos.length > 6 && (
+                          <p className="text-red-600 text-xs sm:text-sm mt-2">
+                            +{alertasValidade.vencidos.length - 6} produtos também estão vencidos
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {alertasValidade.vencendoHoje.length > 0 && (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4">
+                        <h4 className="font-bold text-orange-800 mb-2 flex items-center text-sm sm:text-base">
+                          ⏰ Produtos vencendo HOJE ({alertasValidade.vencendoHoje.length})
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                          {alertasValidade.vencendoHoje.slice(0, 6).map(produto => (
+                            <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-orange-200">
+                              <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
+                              <p className="text-xs text-gray-500">#{produto.codigo}</p>
+                              <p className="text-xs text-orange-600 font-medium">Vence hoje!</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {alertasValidade.vencendoEm7Dias.length > 0 && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
+                        <h4 className="font-bold text-yellow-800 mb-2 flex items-center text-sm sm:text-base">
+                          📆 Produtos vencendo em até 7 dias ({alertasValidade.vencendoEm7Dias.length})
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                          {alertasValidade.vencendoEm7Dias.slice(0, 6).map(produto => {
+                            const diasParaVencer = produto.dataValidade ? 
+                              Math.ceil((new Date(produto.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0
+                            
+                            return (
+                              <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-yellow-200">
+                                <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
+                                <p className="text-xs text-gray-500">#{produto.codigo}</p>
+                                <p className="text-xs text-yellow-600 font-medium">
+                                  Vence em {diasParaVencer} dia{diasParaVencer !== 1 ? 's' : ''}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Ações Rápidas - BOTÕES CORRIGIDOS */}
+              {/* Ações Rápidas - BOTÕES GRANDES E VISÍVEIS */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <button
                   onClick={() => router.push('/produtos')}
@@ -516,7 +464,7 @@ export default function Dashboard() {
 
                   <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
                     <p className="text-lg sm:text-xl font-bold text-green-600">
-                      R$ {valorTotalEstoque.toFixed(2)}
+                      R\$ {valorTotalEstoque.toFixed(2)}
                     </p>
                     <p className="text-green-600 text-sm font-medium">Valor do Estoque</p>
                   </div>
