@@ -1,5 +1,7 @@
 'use client'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import LoadingButton from '@/components/LoadingButton'
 
 // Componente de Loading
 function ErroLoading() {
@@ -13,19 +15,16 @@ function ErroLoading() {
   )
 }
 
+// Interface
+interface MotivoErro {
+  titulo: string
+  descricao: string
+  emoji: string
+  solucao: string[]
+}
+
 // Componente principal do erro
 function ErroContent() {
-  const { useEffect, useState } = require('react')
-  const { useRouter, useSearchParams } = require('next/navigation')
-  const LoadingButton = require('@/components/LoadingButton').default
-
-  interface MotivoErro {
-    titulo: string
-    descricao: string
-    emoji: string
-    solucao: string[]
-  }
-
   const router = useRouter()
   const searchParams = useSearchParams()
   const [motivoErro, setMotivoErro] = useState<MotivoErro | null>(null)
@@ -104,11 +103,11 @@ function ErroContent() {
     setMotivoErro(motivosErro[motivo] || motivosErro.default)
   }, [searchParams])
 
-  const tentarNovamente = () => {
+  const tentarNovamente = (): void => {
     router.push('/vendas')
   }
 
-  const entrarContato = () => {
+  const entrarContato = (): void => {
     // Abrir WhatsApp ou email
     window.open('https://wa.me/5511999999999?text=Olá, tive problemas com o pagamento do StockPro', '_blank')
   }
@@ -166,7 +165,7 @@ function ErroContent() {
             </h2>
             
             <div className="space-y-4">
-              {motivoErro.solucao.map((solucao, index) => (
+              {motivoErro.solucao.map((solucao: string, index: number) => (
                 <div key={index} className="flex items-start">
                   <span className="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">
                     {index + 1}

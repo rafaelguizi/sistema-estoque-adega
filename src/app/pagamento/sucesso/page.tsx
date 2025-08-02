@@ -1,5 +1,8 @@
 'use client'
-import { Suspense } from 'react'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useToastContext } from '@/components/ToastProvider'
+import LoadingButton from '@/components/LoadingButton'
 
 // Componente de Loading
 function SucessoLoading() {
@@ -14,35 +17,31 @@ function SucessoLoading() {
   )
 }
 
+// Interface
+interface DadosCompra {
+  plano: string
+  valor: number
+  transacaoId: string
+  email: string
+  empresa: string
+  credenciais: {
+    email: string
+    senha: string
+  }
+}
+
 // Componente principal do sucesso
 function SucessoContent() {
-  const { useState, useEffect } = require('react')
-  const { useRouter, useSearchParams } = require('next/navigation')
-  const { useToastContext } = require('@/components/ToastProvider')
-  const LoadingButton = require('@/components/LoadingButton').default
-
-  interface DadosCompra {
-    plano: string
-    valor: number
-    transacaoId: string
-    email: string
-    empresa: string
-    credenciais: {
-      email: string
-      senha: string
-    }
-  }
-
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToastContext()
   
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState<boolean>(true)
   const [dadosCompra, setDadosCompra] = useState<DadosCompra | null>(null)
-  const [emailEnviado, setEmailEnviado] = useState(false)
+  const [emailEnviado, setEmailEnviado] = useState<boolean>(false)
 
   useEffect(() => {
-    const verificarPagamento = async () => {
+    const verificarPagamento = async (): Promise<void> => {
       try {
         const paymentId = searchParams.get('payment_id')
         const status = searchParams.get('status')
@@ -122,15 +121,15 @@ function SucessoContent() {
     verificarPagamento()
   }, [searchParams, router, toast])
 
-  const acessarSistema = () => {
+  const acessarSistema = (): void => {
     router.push('/login')
   }
 
-  const baixarRecibo = () => {
+  const baixarRecibo = (): void => {
     toast.info('Download iniciado', 'Recibo será baixado em instantes')
   }
 
-  const copiarCredencial = (texto: string, tipo: string) => {
+  const copiarCredencial = (texto: string, tipo: string): void => {
     navigator.clipboard.writeText(texto)
     toast.success(`${tipo} copiado!`, 'Colado na área de transferência')
   }
@@ -149,7 +148,7 @@ function SucessoContent() {
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Pagamento Confirmado!
           </h1>
-          <p className="text-xl text-gray-600">
+                    <p className="text-xl text-gray-600">
             Bem-vindo ao StockPro! Sua conta foi criada com sucesso.
           </p>
           <div className="mt-4 inline-flex items-center px-4 py-2 bg-green-100 border border-green-300 rounded-full">

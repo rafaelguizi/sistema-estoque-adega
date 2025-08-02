@@ -1,5 +1,8 @@
 'use client'
-import { Suspense } from 'react'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useToastContext } from '@/components/ToastProvider'
+import LoadingButton from '@/components/LoadingButton'
 
 // Componente de Loading
 function CheckoutLoading() {
@@ -13,54 +16,50 @@ function CheckoutLoading() {
   )
 }
 
+// Interfaces
+interface PlanoInfo {
+  id: string
+  nome: string
+  emoji: string
+  preco: number
+  precoOriginal: number
+  recursos: string[]
+  descricao: string
+}
+
+interface FormData {
+  // Dados pessoais
+  nome: string
+  email: string
+  telefone: string
+  cpf: string
+  
+  // Dados da empresa
+  nomeEmpresa: string
+  emailEmpresa: string
+  cnpj: string
+  
+  // Método de pagamento
+  metodoPagamento: 'cartao' | 'pix' | 'boleto'
+  
+  // Termos
+  aceitaTermos: boolean
+  aceitaNewsletter: boolean
+}
+
+interface DadosCompra {
+  plano: PlanoInfo
+  cliente: FormData
+  metodoPagamento: 'cartao' | 'pix' | 'boleto'
+}
+
 // Componente principal do checkout
 function CheckoutContent() {
-  const { useState, useEffect } = require('react')
-  const { useRouter, useSearchParams } = require('next/navigation')
-  const { useToastContext } = require('@/components/ToastProvider')
-  const LoadingButton = require('@/components/LoadingButton').default
-
-  interface PlanoInfo {
-    id: string
-    nome: string
-    emoji: string
-    preco: number
-    precoOriginal: number
-    recursos: string[]
-    descricao: string
-  }
-
-  interface FormData {
-    // Dados pessoais
-    nome: string
-    email: string
-    telefone: string
-    cpf: string
-    
-    // Dados da empresa
-    nomeEmpresa: string
-    emailEmpresa: string
-    cnpj: string
-    
-    // Método de pagamento
-    metodoPagamento: 'cartao' | 'pix' | 'boleto'
-    
-    // Termos
-    aceitaTermos: boolean
-    aceitaNewsletter: boolean
-  }
-
-  interface DadosCompra {
-    plano: PlanoInfo
-    cliente: FormData
-    metodoPagamento: 'cartao' | 'pix' | 'boleto'
-  }
-
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToastContext()
   
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<boolean>(false)
   const [planoSelecionado, setPlanoSelecionado] = useState<PlanoInfo | null>(null)
   const [formData, setFormData] = useState<FormData>({
     nome: '',
@@ -135,19 +134,19 @@ function CheckoutContent() {
   }, [searchParams, router])
 
   // Validação de CPF simples
-  const validarCPF = (cpf: string) => {
+  const validarCPF = (cpf: string): boolean => {
     const cpfLimpo = cpf.replace(/\D/g, '')
     return cpfLimpo.length === 11
   }
 
   // Validação de CNPJ simples
-  const validarCNPJ = (cnpj: string) => {
+  const validarCNPJ = (cnpj: string): boolean => {
     const cnpjLimpo = cnpj.replace(/\D/g, '')
     return cnpjLimpo.length === 14
   }
 
   // Máscara para telefone
-  const formatarTelefone = (valor: string) => {
+  const formatarTelefone = (valor: string): string => {
     const numero = valor.replace(/\D/g, '')
     if (numero.length <= 10) {
       return numero.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
@@ -156,27 +155,27 @@ function CheckoutContent() {
   }
 
   // Máscara para CPF
-  const formatarCPF = (valor: string) => {
+  const formatarCPF = (valor: string): string => {
     const numero = valor.replace(/\D/g, '')
     return numero.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
   }
 
   // Máscara para CNPJ
-  const formatarCNPJ = (valor: string) => {
+  const formatarCNPJ = (valor: string): string => {
     const numero = valor.replace(/\D/g, '')
     return numero.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
   }
 
   // Handle mudança nos inputs
-  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
-    setFormData(prev => ({
+  const handleInputChange = (field: keyof FormData, value: string | boolean): void => {
+    setFormData((prev: FormData) => ({
       ...prev,
       [field]: value
     }))
   }
 
   // Validar formulário
-  const validarFormulario = () => {
+  const validarFormulario = (): string[] => {
     const erros: string[] = []
 
     if (!formData.nome.trim()) erros.push('Nome é obrigatório')
@@ -200,8 +199,8 @@ function CheckoutContent() {
     return erros
   }
 
-  // Processar checkout - VERSÃO SIMULADA
-  const processarCheckout = async () => {
+  // Processar checkout - VERSÃO CORRIGIDA
+  const processarCheckout = async (): Promise<void> => {
     const erros = validarFormulario()
     
     if (erros.length > 0) {
@@ -252,11 +251,11 @@ function CheckoutContent() {
         modo: 'SIMULACAO'
       }))
       
-      // Simular redirecionamento para "Mercado Pago"
+      // CORREÇÃO: Redirecionar direto para sucesso com URL correta
       setTimeout(() => {
-        // Redirecionar direto para sucesso (simulação)
-        const checkoutUrl = resultado.preferencia.init_point
-        window.location.href = checkoutUrl
+        const successUrl = `/pagamento/sucesso?mock=true&payment_id=${resultado.preferencia.id}&status=approved`
+        console.log('🔄 Redirecionando para:', successUrl)
+        router.push(successUrl)
       }, 1500)
       
     } catch (error: any) {
@@ -318,7 +317,7 @@ function CheckoutContent() {
                     type="text"
                     value={formData.nome}
                     onChange={(e) => handleInputChange('nome', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 font-medium"
                     placeholder="João da Silva"
                     disabled={loading}
                   />
@@ -332,7 +331,7 @@ function CheckoutContent() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 font-medium"
                     placeholder="joao@email.com"
                     disabled={loading}
                   />
@@ -346,7 +345,7 @@ function CheckoutContent() {
                     type="tel"
                     value={formData.telefone}
                     onChange={(e) => handleInputChange('telefone', formatarTelefone(e.target.value))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 font-medium"
                     placeholder="(11) 99999-9999"
                     maxLength={15}
                     disabled={loading}
@@ -361,7 +360,7 @@ function CheckoutContent() {
                     type="text"
                     value={formData.cpf}
                     onChange={(e) => handleInputChange('cpf', formatarCPF(e.target.value))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 font-medium"
                     placeholder="000.000.000-00"
                     maxLength={14}
                     disabled={loading}
@@ -386,7 +385,7 @@ function CheckoutContent() {
                     type="text"
                     value={formData.nomeEmpresa}
                     onChange={(e) => handleInputChange('nomeEmpresa', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 font-medium"
                     placeholder="Adega do João"
                     disabled={loading}
                   />
@@ -400,7 +399,7 @@ function CheckoutContent() {
                     type="email"
                     value={formData.emailEmpresa}
                     onChange={(e) => handleInputChange('emailEmpresa', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 font-medium"
                     placeholder="contato@adegadojoao.com"
                     disabled={loading}
                   />
@@ -414,7 +413,7 @@ function CheckoutContent() {
                     type="text"
                     value={formData.cnpj}
                     onChange={(e) => handleInputChange('cnpj', formatarCNPJ(e.target.value))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 font-medium"
                     placeholder="00.000.000/0000-00"
                     maxLength={18}
                     disabled={loading}
@@ -522,7 +521,7 @@ function CheckoutContent() {
                 </div>
                 
                 <div className="space-y-2 text-sm">
-                  {planoSelecionado.recursos.slice(0, 3).map((recurso, index) => (
+                  {planoSelecionado.recursos.slice(0, 3).map((recurso: string, index: number) => (
                     <div key={index} className="flex items-center text-gray-600">
                       <span className="text-green-500 mr-2">✅</span>
                       {recurso}

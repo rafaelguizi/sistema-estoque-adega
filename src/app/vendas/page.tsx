@@ -150,7 +150,7 @@ export default function VendasPage() {
                 onClick={scrollToPlanos}
                 variant="primary"
                 size="lg"
-                className="px-8 py-4 text-lg"
+                className="px-8 py-4 text-lg bg-blue-600 text-white hover:bg-blue-700 border-blue-600 hover:border-blue-700"
               >
                 🚀 Experimente Grátis por 7 dias
               </LoadingButton>
