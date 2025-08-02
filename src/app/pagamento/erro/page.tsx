@@ -1,16 +1,31 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import LoadingButton from '@/components/LoadingButton'
+import { Suspense } from 'react'
 
-interface MotivoErro {
-  titulo: string
-  descricao: string
-  emoji: string
-  solucao: string[]
+// Componente de Loading
+function ErroLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Carregando...</p>
+      </div>
+    </div>
+  )
 }
 
-export default function PagamentoErroPage() {
+// Componente principal do erro
+function ErroContent() {
+  const { useEffect, useState } = require('react')
+  const { useRouter, useSearchParams } = require('next/navigation')
+  const LoadingButton = require('@/components/LoadingButton').default
+
+  interface MotivoErro {
+    titulo: string
+    descricao: string
+    emoji: string
+    solucao: string[]
+  }
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const [motivoErro, setMotivoErro] = useState<MotivoErro | null>(null)
@@ -99,14 +114,7 @@ export default function PagamentoErroPage() {
   }
 
   if (!motivoErro) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando...</p>
-        </div>
-      </div>
-    )
+    return <ErroLoading />
   }
 
   return (
@@ -281,5 +289,14 @@ export default function PagamentoErroPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Componente principal exportado
+export default function PagamentoErroPage() {
+  return (
+    <Suspense fallback={<ErroLoading />}>
+      <ErroContent />
+    </Suspense>
   )
 }
