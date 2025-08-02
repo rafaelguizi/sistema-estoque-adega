@@ -21,6 +21,10 @@ interface Produto {
   ativo: boolean
   dataCadastro: string
   userId: string
+  // 🆕 NOVOS CAMPOS PARA VALIDADE
+  temValidade?: boolean
+  dataValidade?: string
+  diasAlerta?: number
 }
 
 interface Movimentacao {
@@ -61,6 +65,41 @@ export default function Dashboard() {
   // Aguardar dados do Firebase
   const isDataLoading = loading || loadingProdutos || loadingMovimentacoes
 
+  // 🆕 FUNÇÃO PARA VERIFICAR PRODUTOS PRÓXIMOS DO VENCIMENTO
+  const verificarProdutosVencimento = () => {
+    if (!produtos) return { vencendoHoje: [], vencendoEm7Dias: [], vencendoEm30Dias: [], vencidos: [] }
+
+    const hoje = new Date()
+    const em7Dias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const em30Dias = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+    const produtosComValidade = produtos.filter(p => p.ativo && p.temValidade && p.dataValidade)
+
+    const vencidos: Produto[] = []
+    const vencendoHoje: Produto[] = []
+    const vencendoEm7Dias: Produto[] = []
+    const vencendoEm30Dias: Produto[] = []
+
+    produtosComValidade.forEach(produto => {
+      if (!produto.dataValidade) return
+
+      const dataValidade = new Date(produto.dataValidade)
+      const diasParaVencer = Math.ceil((dataValidade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+
+      if (diasParaVencer < 0) {
+        vencidos.push(produto)
+      } else if (diasParaVencer === 0) {
+        vencendoHoje.push(produto)
+      } else if (diasParaVencer <= 7) {
+        vencendoEm7Dias.push(produto)
+      } else if (diasParaVencer <= (produto.diasAlerta || 30)) {
+        vencendoEm30Dias.push(produto)
+      }
+    })
+
+    return { vencendoHoje, vencendoEm7Dias, vencendoEm30Dias, vencidos }
+  }
+
   // Calcular faturamento mensal (zera todo dia 1)
   const calcularFaturamentoMensal = () => {
     if (!movimentacoes) return { totalFaturamento: 0, quantidadeVendas: 0, mesAno: '' }
@@ -94,6 +133,12 @@ export default function Dashboard() {
   const produtosAtivos = produtos ? produtos.filter(p => p.ativo) : []
   const produtosEstoqueBaixo = produtosAtivos.filter(p => p.estoque <= p.estoqueMinimo)
   const produtosEstoqueZerado = produtosAtivos.filter(p => p.estoque === 0)
+
+  // 🆕 ALERTAS DE VALIDADE
+  const alertasValidade = verificarProdutosVencimento()
+  const totalProdutosComProblemaValidade = alertasValidade.vencidos.length + 
+                                          alertasValidade.vencendoHoje.length + 
+                                          alertasValidade.vencendoEm7Dias.length
 
   // Faturamento mensal
   const faturamentoMensal = calcularFaturamentoMensal()
@@ -142,29 +187,64 @@ export default function Dashboard() {
                       </p>
                     )}
                   </div>
+                  
+                  {/* 🔧 BOTÕES CORRIGIDOS - AGORA VISÍVEIS */}
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-                    <LoadingButton
+                    <button
                       onClick={() => router.push('/produtos')}
-                      variant="secondary"
-                      size="sm"
-                      className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                      className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white border border-white border-opacity-30 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2"
                     >
-                      ➕ Novo Produto
-                    </LoadingButton>
-                    <LoadingButton
+                      <span>➕</span>
+                      <span>Novo Produto</span>
+                    </button>
+                    <button
                       onClick={() => router.push('/movimentacoes')}
-                      variant="secondary"
-                      size="sm"
-                      className="w-full sm:w-auto bg-black bg-opacity-20 hover:bg-opacity-30 text-white border-white"
+                      className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white border border-white border-opacity-30 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2"
                     >
-                      📦 Nova Movimentação
-                    </LoadingButton>
+                      <span>📦</span>
+                      <span>Nova Movimentação</span>
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Cards de Estatísticas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              {/* 🆕 ALERTAS DE VALIDADE CRÍTICOS */}
+              {totalProdutosComProblemaValidade > 0 && (
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <span className="text-2xl">⚠️</span>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        Alertas de Validade Críticos!
+                      </h3>
+                      <div className="mt-2 text-sm text-red-700">
+                        <ul className="list-disc list-inside space-y-1">
+                          {alertasValidade.vencidos.length > 0 && (
+                            <li><strong>{alertasValidade.vencidos.length} produto(s) vencido(s)</strong></li>
+                          )}
+                          {alertasValidade.vencendoHoje.length > 0 && (
+                            <li><strong>{alertasValidade.vencendoHoje.length} produto(s) vencendo hoje</strong></li>
+                          )}
+                          {alertasValidade.vencendoEm7Dias.length > 0 && (
+                            <li>{alertasValidade.vencendoEm7Dias.length} produto(s) vencendo em até 7 dias</li>
+                          )}
+                        </ul>
+                        <button
+                          onClick={() => router.push('/relatorios?tab=validade')}
+                          className="mt-2 text-red-800 underline hover:text-red-900 font-medium"
+                        >
+                          Ver detalhes nos relatórios →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Cards de Estatísticas - ATUALIZADO */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
 
                 {/* Total de Produtos */}
                 <div className="bg-gradient-to-r from-blue-400 to-blue-600 p-4 sm:p-6 rounded-lg shadow-lg text-white transform hover:scale-105 transition-all duration-200">
@@ -202,6 +282,18 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                {/* 🆕 ALERTAS DE VALIDADE */}
+                <div className="bg-gradient-to-r from-purple-400 to-purple-600 p-4 sm:p-6 rounded-lg shadow-lg text-white transform hover:scale-105 transition-all duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-purple-100 text-xs sm:text-sm">Próximos ao Vencimento</p>
+                      <p className="text-xl sm:text-2xl font-bold">{totalProdutosComProblemaValidade}</p>
+                      <p className="text-purple-100 text-xs">Requer atenção</p>
+                    </div>
+                    <div className="text-2xl sm:text-3xl ml-2">📅</div>
+                  </div>
+                </div>
+
                 {/* Faturamento Mensal */}
                 <div className="bg-gradient-to-r from-green-400 to-green-600 p-4 sm:p-6 rounded-lg shadow-lg text-white transform hover:scale-105 transition-all duration-200">
                   <div className="flex items-center justify-between">
@@ -214,6 +306,85 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* 🆕 DETALHES DOS ALERTAS DE VALIDADE */}
+              {(alertasValidade.vencidos.length > 0 || alertasValidade.vencendoHoje.length > 0 || alertasValidade.vencendoEm7Dias.length > 0) && (
+                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    📅 Controle de Validade
+                  </h3>
+
+                  <div className="space-y-4">
+                    {/* Produtos vencidos */}
+                    {alertasValidade.vencidos.length > 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                        <h4 className="font-bold text-red-800 mb-2 flex items-center text-sm sm:text-base">
+                          🚨 Produtos VENCIDOS ({alertasValidade.vencidos.length})
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                          {alertasValidade.vencidos.slice(0, 6).map(produto => (
+                            <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-red-200">
+                              <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
+                              <p className="text-xs text-gray-500">#{produto.codigo}</p>
+                              <p className="text-xs text-red-600 font-medium">
+                                Venceu em: {produto.dataValidade ? new Date(produto.dataValidade).toLocaleDateString('pt-BR') : 'N/A'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        {alertasValidade.vencidos.length > 6 && (
+                          <p className="text-red-600 text-xs sm:text-sm mt-2">
+                            +{alertasValidade.vencidos.length - 6} produtos também estão vencidos
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Produtos vencendo hoje */}
+                    {alertasValidade.vencendoHoje.length > 0 && (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4">
+                        <h4 className="font-bold text-orange-800 mb-2 flex items-center text-sm sm:text-base">
+                          ⏰ Produtos vencendo HOJE ({alertasValidade.vencendoHoje.length})
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                          {alertasValidade.vencendoHoje.slice(0, 6).map(produto => (
+                            <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-orange-200">
+                              <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
+                              <p className="text-xs text-gray-500">#{produto.codigo}</p>
+                              <p className="text-xs text-orange-600 font-medium">Vence hoje!</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Produtos vencendo em 7 dias */}
+                    {alertasValidade.vencendoEm7Dias.length > 0 && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
+                        <h4 className="font-bold text-yellow-800 mb-2 flex items-center text-sm sm:text-base">
+                          📆 Produtos vencendo em até 7 dias ({alertasValidade.vencendoEm7Dias.length})
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                          {alertasValidade.vencendoEm7Dias.slice(0, 6).map(produto => {
+                            const diasParaVencer = produto.dataValidade ? 
+                              Math.ceil((new Date(produto.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0
+                            
+                            return (
+                              <div key={produto.id} className="bg-white p-2 sm:p-3 rounded border border-yellow-200">
+                                <p className="font-medium text-gray-900 text-sm truncate">{produto.nome}</p>
+                                <p className="text-xs text-gray-500">#{produto.codigo}</p>
+                                <p className="text-xs text-yellow-600 font-medium">
+                                  Vence em {diasParaVencer} dia{diasParaVencer !== 1 ? 's' : ''}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Informativo sobre Faturamento Mensal */}
               {faturamentoMensal.totalFaturamento > 0 && (
@@ -294,65 +465,43 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Ações Rápidas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              {/* Ações Rápidas - BOTÕES CORRIGIDOS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <button
+                  onClick={() => router.push('/produtos')}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                >
+                  <div className="text-3xl mb-2">➕</div>
+                  <div className="font-semibold text-lg">Novo Produto</div>
+                  <div className="text-blue-100 text-sm mt-1">Cadastrar item</div>
+                </button>
 
-                {/* Gestão de Produtos */}
-                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow duration-200">
-                  <div className="text-center">
-                    <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">📦</div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Gestão de Produtos</h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Cadastre, edite e gerencie seus produtos
-                    </p>
-                    <LoadingButton
-                      onClick={() => router.push('/produtos')}
-                      variant="primary"
-                      size="md"
-                      className="w-full"
-                    >
-                      Gerenciar Produtos
-                    </LoadingButton>
-                  </div>
-                </div>
+                <button
+                  onClick={() => router.push('/movimentacoes')}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                >
+                  <div className="text-3xl mb-2">📦</div>
+                  <div className="font-semibold text-lg">Nova Movimentação</div>
+                  <div className="text-green-100 text-sm mt-1">Entrada/Saída</div>
+                </button>
 
-                {/* Movimentações */}
-                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow duration-200">
-                  <div className="text-center">
-                    <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">↔️</div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Movimentações</h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Registre entradas e saídas do estoque
-                    </p>
-                    <LoadingButton
-                      onClick={() => router.push('/movimentacoes')}
-                      variant="primary"
-                      size="md"
-                      className="w-full"
-                    >
-                      Ver Movimentações
-                    </LoadingButton>
-                  </div>
-                </div>
+                <button
+                  onClick={() => router.push('/pdv')}
+                  className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                >
+                  <div className="text-3xl mb-2">💰</div>
+                  <div className="font-semibold text-lg">PDV</div>
+                  <div className="text-purple-100 text-sm mt-1">Ponto de Venda</div>
+                </button>
 
-                {/* Relatórios */}
-                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow duration-200 sm:col-span-2 lg:col-span-1">
-                  <div className="text-center">
-                    <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">📈</div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Relatórios</h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Analise vendas e performance do estoque
-                    </p>
-                    <LoadingButton
-                      onClick={() => router.push('/relatorios')}
-                      variant="success"
-                      size="md"
-                      className="w-full"
-                    >
-                      Ver Relatórios
-                    </LoadingButton>
-                  </div>
-                </div>
+                <button
+                  onClick={() => router.push('/relatorios')}
+                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                >
+                  <div className="text-3xl mb-2">📊</div>
+                  <div className="font-semibold text-lg">Relatórios</div>
+                  <div className="text-orange-100 text-sm mt-1">Análises</div>
+                </button>
               </div>
 
               {/* Resumo do Estoque */}

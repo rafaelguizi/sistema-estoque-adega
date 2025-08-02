@@ -20,6 +20,10 @@ interface Produto {
   ativo: boolean
   dataCadastro: string
   userId: string
+  // 🆕 NOVOS CAMPOS PARA VALIDADE
+  temValidade?: boolean
+  dataValidade?: string
+  diasAlerta?: number
 }
 
 interface Movimentacao {
@@ -35,6 +39,210 @@ interface Movimentacao {
   hora: string
   observacao: string
   userId: string
+}
+
+// 🆕 COMPONENTE DE BUSCA DE PRODUTOS
+interface ProdutoSelectorProps {
+  produtos: Produto[]
+  onSelect: (produto: Produto | null) => void
+  produtoSelecionado?: Produto | null
+  disabled?: boolean
+}
+
+function ProdutoSelector({ produtos, onSelect, produtoSelecionado, disabled }: ProdutoSelectorProps) {
+  const [busca, setBusca] = useState('')
+  const [mostrarLista, setMostrarLista] = useState(false)
+  const [produtosFiltrados, setProdutosFiltrados] = useState<Produto[]>(produtos)
+
+  // Filtrar produtos conforme busca
+  const filtrarProdutos = (termoBusca: string) => {
+    if (!termoBusca.trim()) {
+      setProdutosFiltrados(produtos)
+      return
+    }
+
+    const filtrados = produtos.filter(produto =>
+      produto.nome.toLowerCase().includes(termoBusca.toLowerCase()) ||
+      produto.codigo.toLowerCase().includes(termoBusca.toLowerCase()) ||
+      produto.categoria?.toLowerCase().includes(termoBusca.toLowerCase())
+    )
+    
+    setProdutosFiltrados(filtrados)
+  }
+
+  const handleBuscaChange = (valor: string) => {
+    setBusca(valor)
+    filtrarProdutos(valor)
+    setMostrarLista(true)
+    
+    // Se limpar a busca, limpar seleção
+    if (!valor.trim()) {
+      onSelect(null)
+    }
+  }
+
+  const handleSelect = (produto: Produto) => {
+    onSelect(produto)
+    setBusca(produto.nome)
+    setMostrarLista(false)
+  }
+
+  const limparSelecao = () => {
+    setBusca('')
+    onSelect(null)
+    setMostrarLista(false)
+    setProdutosFiltrados(produtos)
+  }
+
+  return (
+    <div className="relative">
+      {/* Campo de busca */}
+      <div className="relative">
+        <input
+          type="text"
+          value={busca}
+          onChange={(e) => handleBuscaChange(e.target.value)}
+          onFocus={() => {
+            setMostrarLista(true)
+            filtrarProdutos(busca)
+          }}
+          className="w-full border-2 border-gray-400 rounded-lg px-4 py-3 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+          placeholder="🔍 Busque por nome, código ou categoria..."
+          disabled={disabled}
+        />
+        
+        {busca && (
+          <button
+            type="button"
+            onClick={limparSelecao}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* Lista de produtos */}
+      {mostrarLista && !disabled && (
+        <div className="absolute z-20 w-full mt-1 bg-white border-2 border-gray-300 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+          {produtosFiltrados.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              {busca ? 'Nenhum produto encontrado' : 'Nenhum produto disponível'}
+            </div>
+          ) : (
+            <>
+              {produtosFiltrados.map(produto => (
+                <button
+                  key={produto.id}
+                  type="button"
+                  onClick={() => handleSelect(produto)}
+                  className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b border-gray-100 last:border-b-0 focus:bg-blue-100 focus:outline-none transition-colors"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{produto.nome}</div>
+                      <div className="text-sm text-gray-500 flex items-center space-x-2">
+                        <span>#{produto.codigo}</span>
+                        {produto.categoria && (
+                          <>
+                            <span>•</span>
+                            <span>{produto.categoria}</span>
+                          </>
+                        )}
+                        <span>•</span>
+                        <span>Estoque: {produto.estoque}</span>
+                        <span>•</span>
+                        <span>R$ {produto.valorVenda.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-end space-y-1">
+                      {produto.estoque <= 0 && (
+                        <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                          Sem estoque
+                        </span>
+                      )}
+                      {produto.estoque > 0 && produto.estoque <= produto.estoqueMinimo && (
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                          Estoque baixo
+                        </span>
+                      )}
+                      {produto.temValidade && produto.dataValidade && (
+                        <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                          📅 Com validade
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Produto selecionado */}
+      {produtoSelecionado && !mostrarLista && (
+        <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-lg">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="font-medium text-blue-900 text-lg">{produtoSelecionado.nome}</div>
+              <div className="text-sm text-blue-700 mt-1 space-y-1">
+                <div className="flex items-center space-x-4">
+                  <span><strong>Código:</strong> #{produtoSelecionado.codigo}</span>
+                  {produtoSelecionado.categoria && (
+                    <span><strong>Categoria:</strong> {produtoSelecionado.categoria}</span>
+                  )}
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span><strong>Estoque atual:</strong> {produtoSelecionado.estoque} unidades</span>
+                  <span><strong>Estoque mínimo:</strong> {produtoSelecionado.estoqueMinimo}</span>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span><strong>Preço compra:</strong> R$ {produtoSelecionado.valorCompra.toFixed(2)}</span>
+                  <span><strong>Preço venda:</strong> R$ {produtoSelecionado.valorVenda.toFixed(2)}</span>
+                </div>
+                
+                {/* Alertas do produto */}
+                <div className="flex items-center space-x-2 mt-2">
+                  {produtoSelecionado.estoque <= 0 && (
+                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                      🚫 Sem estoque
+                    </span>
+                  )}
+                  {produtoSelecionado.estoque > 0 && produtoSelecionado.estoque <= produtoSelecionado.estoqueMinimo && (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                      ⚠️ Estoque baixo
+                    </span>
+                  )}
+                  {produtoSelecionado.temValidade && (
+                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                      �� Produto com validade
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={limparSelecao}
+              className="ml-4 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay para fechar lista */}
+      {mostrarLista && (
+        <div
+          className="fixed inset-0 z-10"
+          onClick={() => setMostrarLista(false)}
+        />
+      )}
+    </div>
+  )
 }
 
 export default function Movimentacoes() {
@@ -59,9 +267,11 @@ export default function Movimentacoes() {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   
+  // 🆕 ESTADO PARA PRODUTO SELECIONADO
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
+  
   // Estados do formulário
   const [formData, setFormData] = useState({
-    produtoId: '',
     tipo: 'entrada' as 'entrada' | 'saida',
     quantidade: '',
     observacao: ''
@@ -75,11 +285,11 @@ export default function Movimentacoes() {
 
   const resetForm = () => {
     setFormData({
-      produtoId: '',
       tipo: 'entrada',
       quantidade: '',
       observacao: ''
     })
+    setProdutoSelecionado(null)
     setShowForm(false)
   }
 
@@ -94,7 +304,7 @@ export default function Movimentacoes() {
     setLoading(true)
     try {
       // Validações
-      if (!formData.produtoId || !formData.quantidade) {
+      if (!produtoSelecionado || !formData.quantidade) {
         toast.error('Campos obrigatórios', 'Selecione um produto e informe a quantidade!')
         return
       }
@@ -106,27 +316,21 @@ export default function Movimentacoes() {
         return
       }
 
-      const produto = produtos?.find(p => p.id === formData.produtoId)
-      if (!produto) {
-        toast.error('Produto não encontrado', 'Produto selecionado não existe!')
-        return
-      }
-
-      if (!produto.ativo) {
+      if (!produtoSelecionado.ativo) {
         toast.error('Produto inativo', 'Não é possível movimentar produtos inativos!')
         return
       }
 
       // Verificar estoque para saídas
-      if (formData.tipo === 'saida' && produto.estoque < quantidade) {
-        toast.error('Estoque insuficiente', `Estoque atual: ${produto.estoque} unidades`)
+      if (formData.tipo === 'saida' && produtoSelecionado.estoque < quantidade) {
+        toast.error('Estoque insuficiente', `Estoque atual: ${produtoSelecionado.estoque} unidades`)
         return
       }
 
       // Calcular novo estoque
       const novoEstoque = formData.tipo === 'entrada' 
-        ? produto.estoque + quantidade 
-        : produto.estoque - quantidade
+        ? produtoSelecionado.estoque + quantidade 
+        : produtoSelecionado.estoque - quantidade
 
       if (novoEstoque < 0) {
         toast.error('Erro no cálculo', 'Estoque não pode ficar negativo!')
@@ -134,12 +338,12 @@ export default function Movimentacoes() {
       }
 
       // Usar valor padrão do produto (entrada = valor compra, saída = valor venda)
-      const valorUnitario = formData.tipo === 'entrada' ? produto.valorCompra : produto.valorVenda
+      const valorUnitario = formData.tipo === 'entrada' ? produtoSelecionado.valorCompra : produtoSelecionado.valorVenda
 
       const novaMovimentacao = {
-        produto: produto.nome,
-        codigo: produto.codigo,
-        produtoId: produto.id,
+        produto: produtoSelecionado.nome,
+        codigo: produtoSelecionado.codigo,
+        produtoId: produtoSelecionado.id,
         tipo: formData.tipo,
         quantidade,
         valorUnitario,
@@ -157,12 +361,12 @@ export default function Movimentacoes() {
       await addMovimentacao(novaMovimentacao)
 
       // Atualizar estoque do produto
-      await updateProduto(produto.id, { ...produto, estoque: novoEstoque })
+      await updateProduto(produtoSelecionado.id, { ...produtoSelecionado, estoque: novoEstoque })
 
       const tipoTexto = formData.tipo === 'entrada' ? 'Entrada' : 'Saída'
       toast.success(
         `${tipoTexto} registrada!`, 
-        `${quantidade} unidades de ${produto.nome}`
+        `${quantidade} unidades de ${produtoSelecionado.nome}`
       )
 
       resetForm()
@@ -384,10 +588,10 @@ export default function Movimentacoes() {
             </div>
           )}
 
-          {/* Formulário de Nova Movimentação */}
+          {/* 🆕 FORMULÁRIO ATUALIZADO COM BUSCA DE PRODUTOS */}
           {showForm && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center p-4 sm:p-6 border-b">
                   <h3 className="text-base sm:text-lg font-bold text-gray-900">
                     ➕ Nova Movimentação
@@ -403,27 +607,21 @@ export default function Movimentacoes() {
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
+                  
+                  {/* 🆕 BUSCA INTELIGENTE DE PRODUTOS */}
                   <div>
                     <label className="block text-sm font-bold text-gray-800 mb-2">
                       Produto *
                     </label>
-                    <select
-                      value={formData.produtoId}
-                      onChange={(e) => setFormData({...formData, produtoId: e.target.value})}
-                      className="w-full border-2 border-gray-400 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-sm sm:text-base"
-                      required
+                    <ProdutoSelector
+                      produtos={produtosAtivos}
+                      onSelect={setProdutoSelecionado}
+                      produtoSelecionado={produtoSelecionado}
                       disabled={loading}
-                    >
-                      <option value="">Selecione um produto</option>
-                      {produtosAtivos.map(produto => (
-                        <option key={produto.id} value={produto.id}>
-                          {produto.nome} (#{produto.codigo}) - Estoque: {produto.estoque}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     {produtosAtivos.length === 0 && (
-                      <p className="text-red-600 text-sm mt-1">
+                      <p className="text-red-600 text-sm mt-2">
                         Nenhum produto ativo encontrado. Cadastre produtos primeiro.
                       </p>
                     )}
@@ -475,6 +673,21 @@ export default function Movimentacoes() {
                       required
                       disabled={loading}
                     />
+                    
+                    {/* Alertas de estoque */}
+                    {produtoSelecionado && formData.tipo === 'saida' && formData.quantidade && (
+                      <div className="mt-2">
+                        {parseInt(formData.quantidade) > produtoSelecionado.estoque ? (
+                          <div className="text-red-600 text-sm bg-red-50 p-2 rounded border border-red-200">
+                            ⚠️ Quantidade maior que estoque disponível ({produtoSelecionado.estoque} unidades)
+                          </div>
+                        ) : (
+                          <div className="text-green-600 text-sm bg-green-50 p-2 rounded border border-green-200">
+                            ✅ Estoque suficiente. Restará {produtoSelecionado.estoque - parseInt(formData.quantidade)} unidades
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -492,22 +705,21 @@ export default function Movimentacoes() {
                   </div>
 
                   {/* Resumo da movimentação */}
-                  {formData.produtoId && formData.quantidade && (
+                  {produtoSelecionado && formData.quantidade && (
                     <div className="bg-gradient-to-r from-green-100 via-blue-100 to-purple-100 p-4 sm:p-5 rounded-lg border-4 border-green-500 shadow-lg">
                       <h4 className="font-bold text-gray-900 mb-3 text-base sm:text-lg flex items-center">
                         💰 <span className="ml-2">Resumo da Movimentação:</span>
                       </h4>
                       {(() => {
-                        const produto = produtos?.find(p => p.id === formData.produtoId)
                         const quantidade = parseInt(formData.quantidade)
-                        const valorUnitario = produto ? (formData.tipo === 'entrada' ? produto.valorCompra : produto.valorVenda) : 0
+                        const valorUnitario = formData.tipo === 'entrada' ? produtoSelecionado.valorCompra : produtoSelecionado.valorVenda
                         const valorTotal = valorUnitario * quantidade
                         
                         return (
                           <div className="space-y-2 text-sm sm:text-base">
                             <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
                               <span className="text-gray-800 font-medium">Produto:</span>
-                              <span className="font-bold text-gray-900">{produto?.nome}</span>
+                              <span className="font-bold text-gray-900">{produtoSelecionado.nome}</span>
                             </div>
                             <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
                               <span className="text-gray-800 font-medium">Tipo:</span>
@@ -516,7 +728,7 @@ export default function Movimentacoes() {
                                   ? 'bg-green-200 text-green-800' 
                                   : 'bg-red-200 text-red-800'
                               }`}>
-                                {formData.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
+                                {formData.tipo === 'entrada' ? '📥 Entrada' : '�� Saída'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center p-2 bg-white bg-opacity-70 rounded-lg">
@@ -550,6 +762,7 @@ export default function Movimentacoes() {
                       variant="primary"
                       size="md"
                       className="flex-1"
+                      disabled={!produtoSelecionado || !formData.quantidade}
                     >
                       💾 Registrar Movimentação
                     </LoadingButton>
@@ -693,7 +906,7 @@ export default function Movimentacoes() {
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-red-100 text-red-800'
                               }`}>
-                                {mov.tipo === 'entrada' ? '📥 Entrada' : '📤 Saída'}
+                                {mov.tipo === 'entrada' ? '📥 Entrada' : '�� Saída'}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
