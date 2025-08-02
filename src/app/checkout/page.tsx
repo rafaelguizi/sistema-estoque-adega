@@ -1,46 +1,61 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useToastContext } from '@/components/ToastProvider'
-import LoadingButton from '@/components/LoadingButton'
+import { Suspense } from 'react'
 
-interface PlanoInfo {
-  id: string
-  nome: string
-  emoji: string
-  preco: number
-  precoOriginal: number
-  recursos: string[]
-  descricao: string
+// Componente de Loading
+function CheckoutLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Carregando checkout...</p>
+      </div>
+    </div>
+  )
 }
 
-interface FormData {
-  // Dados pessoais
-  nome: string
-  email: string
-  telefone: string
-  cpf: string
-  
-  // Dados da empresa
-  nomeEmpresa: string
-  emailEmpresa: string
-  cnpj: string
-  
-  // Método de pagamento
-  metodoPagamento: 'cartao' | 'pix' | 'boleto'
-  
-  // Termos
-  aceitaTermos: boolean
-  aceitaNewsletter: boolean
-}
+// Componente principal do checkout
+function CheckoutContent() {
+  const { useState, useEffect } = require('react')
+  const { useRouter, useSearchParams } = require('next/navigation')
+  const { useToastContext } = require('@/components/ToastProvider')
+  const LoadingButton = require('@/components/LoadingButton').default
 
-interface DadosCompra {
-  plano: PlanoInfo
-  cliente: FormData
-  metodoPagamento: 'cartao' | 'pix' | 'boleto'
-}
+  interface PlanoInfo {
+    id: string
+    nome: string
+    emoji: string
+    preco: number
+    precoOriginal: number
+    recursos: string[]
+    descricao: string
+  }
 
-export default function CheckoutPage() {
+  interface FormData {
+    // Dados pessoais
+    nome: string
+    email: string
+    telefone: string
+    cpf: string
+    
+    // Dados da empresa
+    nomeEmpresa: string
+    emailEmpresa: string
+    cnpj: string
+    
+    // Método de pagamento
+    metodoPagamento: 'cartao' | 'pix' | 'boleto'
+    
+    // Termos
+    aceitaTermos: boolean
+    aceitaNewsletter: boolean
+  }
+
+  interface DadosCompra {
+    plano: PlanoInfo
+    cliente: FormData
+    metodoPagamento: 'cartao' | 'pix' | 'boleto'
+  }
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToastContext()
@@ -253,14 +268,7 @@ export default function CheckoutPage() {
   }
 
   if (!planoSelecionado) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando checkout...</p>
-        </div>
-      </div>
-    )
+    return <CheckoutLoading />
   }
 
   return (
@@ -584,5 +592,14 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Componente principal exportado
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<CheckoutLoading />}>
+      <CheckoutContent />
+    </Suspense>
   )
 }

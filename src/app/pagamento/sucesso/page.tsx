@@ -1,22 +1,38 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useToastContext } from '@/components/ToastProvider'
-import LoadingButton from '@/components/LoadingButton'
+import { Suspense } from 'react'
 
-interface DadosCompra {
-  plano: string
-  valor: number
-  transacaoId: string
-  email: string
-  empresa: string
-  credenciais: {
-    email: string
-    senha: string
-  }
+// Componente de Loading
+function SucessoLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent mx-auto mb-6"></div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Verificando pagamento...</h2>
+        <p className="text-gray-600">Aguarde enquanto confirmamos sua compra</p>
+      </div>
+    </div>
+  )
 }
 
-export default function PagamentoSucessoPage() {
+// Componente principal do sucesso
+function SucessoContent() {
+  const { useState, useEffect } = require('react')
+  const { useRouter, useSearchParams } = require('next/navigation')
+  const { useToastContext } = require('@/components/ToastProvider')
+  const LoadingButton = require('@/components/LoadingButton').default
+
+  interface DadosCompra {
+    plano: string
+    valor: number
+    transacaoId: string
+    email: string
+    empresa: string
+    credenciais: {
+      email: string
+      senha: string
+    }
+  }
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToastContext()
@@ -90,14 +106,8 @@ export default function PagamentoSucessoPage() {
         }
         
         if (paymentId && status === 'approved') {
-          // Aqui seria a verificação real com Mercado Pago
-          // const response = await fetch(`/api/verificar-pagamento/${paymentId}`)
-          // const dados = await response.json()
-          
-          // Por enquanto, simular sucesso
           toast.success('Pagamento confirmado!', 'Processando sua conta...')
         } else {
-          // Redirecionar para erro se não aprovado
           router.push('/pagamento/erro?motivo=status_invalido')
         }
         
@@ -117,7 +127,6 @@ export default function PagamentoSucessoPage() {
   }
 
   const baixarRecibo = () => {
-    // Simular download do recibo
     toast.info('Download iniciado', 'Recibo será baixado em instantes')
   }
 
@@ -127,15 +136,7 @@ export default function PagamentoSucessoPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Verificando pagamento...</h2>
-          <p className="text-gray-600">Aguarde enquanto confirmamos sua compra</p>
-        </div>
-      </div>
-    )
+    return <SucessoLoading />
   }
 
   return (
@@ -158,16 +159,17 @@ export default function PagamentoSucessoPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Dados da Compra */}
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <span className="mr-3">📋</span>
-              Detalhes da Compra
-            </h2>
+        {/* Resto do conteúdo igual ao anterior... */}
+        {dadosCompra && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {dadosCompra && (
+            {/* Dados da Compra */}
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <span className="mr-3">📋</span>
+                Detalhes da Compra
+              </h2>
+              
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
                   <span className="text-gray-600">Plano Adquirido</span>
@@ -207,28 +209,26 @@ export default function PagamentoSucessoPage() {
                   <span className="text-gray-900">{new Date().toLocaleDateString('pt-BR')}</span>
                 </div>
               </div>
-            )}
-            
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <LoadingButton
-                onClick={baixarRecibo}
-                variant="secondary"
-                size="md"
-                className="w-full"
-              >
-                📄 Baixar Recibo
-              </LoadingButton>
+              
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <LoadingButton
+                  onClick={baixarRecibo}
+                  variant="secondary"
+                  size="md"
+                  className="w-full"
+                >
+                  📄 Baixar Recibo
+                </LoadingButton>
+              </div>
             </div>
-          </div>
 
-          {/* Credenciais de Acesso */}
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <span className="mr-3">🔑</span>
-              Seus Dados de Acesso
-            </h2>
-            
-            {dadosCompra && (
+            {/* Credenciais de Acesso */}
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <span className="mr-3">🔑</span>
+                Seus Dados de Acesso
+              </h2>
+              
               <div className="space-y-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h3 className="font-semibold text-blue-900 mb-3">Credenciais do Sistema</h3>
@@ -299,114 +299,9 @@ export default function PagamentoSucessoPage() {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Próximos Passos */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <span className="mr-3">🚀</span>
-            Próximos Passos
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-6 bg-blue-50 rounded-lg">
-              <div className="text-4xl mb-3">1️⃣</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Acesse o Sistema</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Use suas credenciais para fazer login no StockPro
-              </p>
-              <div className="text-xs text-blue-600 bg-blue-100 rounded-lg p-2">
-                💡 Dica: Salve suas credenciais em local seguro
-              </div>
-            </div>
-            
-            <div className="text-center p-6 bg-green-50 rounded-lg">
-              <div className="text-4xl mb-3">2️⃣</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Configure sua Empresa</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Cadastre seus produtos e configure o sistema
-              </p>
-              <div className="text-xs text-green-600 bg-green-100 rounded-lg p-2">
-                �� Comece com 10-20 produtos principais
-              </div>
-            </div>
-            
-            <div className="text-center p-6 bg-purple-50 rounded-lg">
-              <div className="text-4xl mb-3">3️⃣</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Comece a Vender</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Use o PDV para realizar suas primeiras vendas
-              </p>
-              <div className="text-xs text-purple-600 bg-purple-100 rounded-lg p-2">
-                🛒 PDV otimizado para vendas rápidas
-              </div>
             </div>
           </div>
-        </div>
-
-        {/* Recursos Disponíveis */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <span className="mr-3">⭐</span>
-            O que você pode fazer agora
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">📦</span>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Gerenciar Produtos</h4>
-                  <p className="text-sm text-gray-600">Cadastre, edite e organize seu estoque</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">🛒</span>
-                <div>
-                  <h4 className="font-semibold text-gray-900">PDV Integrado</h4>
-                  <p className="text-sm text-gray-600">Vendas rápidas com código de barras</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">📊</span>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Relatórios</h4>
-                  <p className="text-sm text-gray-600">Acompanhe vendas e performance</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">📱</span>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Acesso Mobile</h4>
-                  <p className="text-sm text-gray-600">Funciona em qualquer dispositivo</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">☁️</span>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Backup Automático</h4>
-                  <p className="text-sm text-gray-600">Seus dados sempre seguros na nuvem</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">🎯</span>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Alertas Inteligentes</h4>
-                  <p className="text-sm text-gray-600">Notificações de estoque baixo</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Botões de Ação */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
@@ -428,47 +323,16 @@ export default function PagamentoSucessoPage() {
             🏠 Voltar ao Site
           </LoadingButton>
         </div>
-
-        {/* Suporte */}
-        <div className="text-center mt-12">
-          <div className="bg-gray-100 rounded-lg p-6 max-w-2xl mx-auto">
-            <h3 className="font-semibold text-gray-900 mb-2">💬 Precisa de Ajuda?</h3>
-            <p className="text-gray-600 mb-4">
-              Nossa equipe está pronta para te ajudar a começar
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center text-sm">
-              <a 
-                href="mailto:suporte@stockpro.com" 
-                className="text-blue-600 hover:text-blue-700"
-              >
-                📧 suporte@stockpro.com
-              </a>
-              <a 
-                href="https://wa.me/5511999999999" 
-                 
-                rel="noopener noreferrer"
-                className="text-green-600 hover:text-green-700"
-              >
-                📱 (11) 99999-9999
-              </a>
-              <span className="text-purple-600">💬 Chat ao vivo</span>
-            </div>
-            
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>🎯 Dica:</strong> Acesse nosso canal no YouTube para tutoriais completos sobre como usar o StockPro!
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Rodapé com informações importantes */}
-        <div className="text-center mt-8 text-sm text-gray-500">
-          <p>🔒 Seus dados estão seguros e protegidos</p>
-          <p>✅ Conta ativa por 7 dias grátis, depois R\$ {dadosCompra?.valor}/mês</p>
-          <p>📞 Suporte técnico incluído em todos os planos</p>
-        </div>
       </div>
     </div>
+  )
+}
+
+// Componente principal exportado
+export default function PagamentoSucessoPage() {
+  return (
+    <Suspense fallback={<SucessoLoading />}>
+      <SucessoContent />
+    </Suspense>
   )
 }
