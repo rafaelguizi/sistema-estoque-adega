@@ -1,14 +1,4 @@
-import { MercadoPagoConfig, Preference, Payment } from 'mercadopago'
-
-// Configuração do cliente Mercado Pago
-const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
-  options: {
-    timeout: 5000,
-    idempotencyKey: 'abc'
-  }
-})
-
+// Versão simplificada sem dependência externa
 export interface DadosCompra {
   plano: {
     id: string
@@ -33,102 +23,66 @@ export interface PreferenceResponse {
   sandbox_init_point: string
 }
 
-// Criar preferência de pagamento
+// Simular criação de preferência (sem Mercado Pago real)
 export const criarPreferencia = async (dadosCompra: DadosCompra): Promise<PreferenceResponse> => {
   try {
-    const preference = new Preference(client)
-    
     // Gerar ID único para a compra
     const externalReference = `STOCKPRO_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
-    const preferenceData = {
-      items: [
-        {
-          id: dadosCompra.plano.id,
-          title: `StockPro - Plano ${dadosCompra.plano.nome}`,
-          description: `Assinatura mensal do sistema de controle de estoque`,
-          quantity: 1,
-          unit_price: dadosCompra.plano.preco,
-          currency_id: 'BRL'
-        }
-      ],
-      payer: {
-        name: dadosCompra.cliente.nome,
-        email: dadosCompra.cliente.email,
-        phone: {
-          number: dadosCompra.cliente.telefone.replace(/\D/g, '')
-        },
-        identification: dadosCompra.cliente.cpf ? {
-          type: 'CPF',
-          number: dadosCompra.cliente.cpf.replace(/\D/g, '')
-        } : undefined
-      },
-      back_urls: {
-        success: `${process.env.NEXT_PUBLIC_URL}/pagamento/sucesso`,
-        failure: `${process.env.NEXT_PUBLIC_URL}/pagamento/erro?motivo=rejected`,
-        pending: `${process.env.NEXT_PUBLIC_URL}/pagamento/erro?motivo=pending`
-      },
-      auto_return: 'approved',
-      external_reference: externalReference,
-      notification_url: `${process.env.NEXT_PUBLIC_URL}/api/webhook/mercadopago`,
-      payment_methods: {
-        excluded_payment_types: [],
-        excluded_payment_methods: [],
-        installments: 12, // Até 12x
-        default_installments: 1
-      },
-      shipments: {
-        cost: 0,
-        mode: 'not_specified'
-      },
-      metadata: {
-        cliente_id: externalReference,
-        empresa: dadosCompra.cliente.nomeEmpresa,
-        email_empresa: dadosCompra.cliente.emailEmpresa,
-        plano: dadosCompra.plano.nome,
-        metodo_preferido: dadosCompra.metodoPagamento
-      }
+    console.log('🛒 Simulando criação de preferência:', {
+      plano: dadosCompra.plano,
+      cliente: dadosCompra.cliente.nome,
+      empresa: dadosCompra.cliente.nomeEmpresa,
+      valor: dadosCompra.plano.preco
+    })
+    
+    // Simular delay de API
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Retornar dados simulados
+    const mockPreference: PreferenceResponse = {
+      id: externalReference,
+      init_point: `${process.env.NEXT_PUBLIC_URL}/pagamento/sucesso?mock=true&payment_id=${externalReference}&status=approved`,
+      sandbox_init_point: `${process.env.NEXT_PUBLIC_URL}/pagamento/sucesso?mock=true&payment_id=${externalReference}&status=approved`
     }
     
-    const response = await preference.create({ body: preferenceData })
+    console.log('✅ Preferência simulada criada:', mockPreference.id)
     
-    console.log('✅ Preferência criada:', response.id)
-    
-    return {
-      id: response.id!,
-      init_point: response.init_point!,
-      sandbox_init_point: response.sandbox_init_point!
-    }
+    return mockPreference
     
   } catch (error) {
-    console.error('❌ Erro ao criar preferência:', error)
+    console.error('❌ Erro ao simular preferência:', error)
     throw new Error('Erro ao processar pagamento')
   }
 }
 
-// Verificar status do pagamento
+// Simular verificação de pagamento
 export const verificarPagamento = async (paymentId: string) => {
   try {
-    const payment = new Payment(client)
-    const response = await payment.get({ id: paymentId })
+    console.log('📋 Simulando verificação de pagamento:', paymentId)
     
-    console.log('📋 Status do pagamento:', response)
+    // Simular delay
+    await new Promise(resolve => setTimeout(resolve, 500))
     
     return {
-      id: response.id,
-      status: response.status,
-      status_detail: response.status_detail,
-      transaction_amount: response.transaction_amount,
-      currency_id: response.currency_id,
-      payer: response.payer,
-      payment_method: response.payment_method,
-      external_reference: response.external_reference,
-      date_created: response.date_created,
-      date_approved: response.date_approved
+      id: paymentId,
+      status: 'approved',
+      status_detail: 'accredited',
+      transaction_amount: 99,
+      currency_id: 'BRL',
+      payer: {
+        email: 'cliente@teste.com'
+      },
+      payment_method: {
+        type: 'credit_card'
+      },
+      external_reference: paymentId,
+      date_created: new Date().toISOString(),
+      date_approved: new Date().toISOString()
     }
     
   } catch (error) {
-    console.error('❌ Erro ao verificar pagamento:', error)
+    console.error('❌ Erro ao simular verificação:', error)
     throw new Error('Erro ao verificar status do pagamento')
   }
 }
@@ -158,4 +112,22 @@ export const gerarCredenciais = (nomeEmpresa: string, email: string) => {
     senha: senha,
     senhaTemporaria: true
   }
+}
+
+// Função para integração real com Mercado Pago (para implementar depois)
+export const integrarMercadoPagoReal = async () => {
+  console.log(`
+🔧 PARA INTEGRAÇÃO REAL COM MERCADO PAGO:
+
+1. Instalar dependência:
+   npm install mercadopago
+
+2. Configurar variáveis de ambiente:
+   MERCADO_PAGO_ACCESS_TOKEN=seu_token_aqui
+   MERCADO_PAGO_PUBLIC_KEY=sua_chave_publica_aqui
+
+3. Substituir as funções simuladas pelas reais
+
+4. Configurar webhook para confirmação automática
+  `)
 }

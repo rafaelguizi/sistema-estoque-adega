@@ -34,6 +34,12 @@ interface FormData {
   aceitaNewsletter: boolean
 }
 
+interface DadosCompra {
+  plano: PlanoInfo
+  cliente: FormData
+  metodoPagamento: 'cartao' | 'pix' | 'boleto'
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -179,7 +185,7 @@ export default function CheckoutPage() {
     return erros
   }
 
-  // Processar checkout
+  // Processar checkout - VERSÃO SIMULADA
   const processarCheckout = async () => {
     const erros = validarFormulario()
     
@@ -196,30 +202,51 @@ export default function CheckoutPage() {
     setLoading(true)
     
     try {
-      // Simular processamento
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Aqui será a integração com Mercado Pago
-      const dadosCheckout = {
+      const dadosCheckout: DadosCompra = {
         plano: planoSelecionado,
         cliente: formData,
-        valor: planoSelecionado.preco,
         metodoPagamento: formData.metodoPagamento
       }
       
-      console.log('📦 Dados do checkout:', dadosCheckout)
+      console.log('📦 Enviando dados do checkout:', dadosCheckout)
       
-      // Por enquanto, simular sucesso
-      toast.success('Processando pagamento...', 'Redirecionando para o Mercado Pago')
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dadosCheckout)
+      })
       
-      // Simular redirecionamento para Mercado Pago
+      const resultado = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(resultado.error || 'Erro no checkout')
+      }
+      
+      console.log('✅ Checkout processado (SIMULAÇÃO):', resultado)
+      
+      toast.success('Processando...', 'Redirecionando para pagamento simulado')
+      
+      // Salvar dados temporariamente
+      localStorage.setItem('stockpro_checkout_temp', JSON.stringify({
+        credenciais: resultado.credenciais,
+        plano: planoSelecionado,
+        cliente: formData,
+        clienteData: resultado.clienteData,
+        modo: 'SIMULACAO'
+      }))
+      
+      // Simular redirecionamento para "Mercado Pago"
       setTimeout(() => {
-        router.push('/pagamento/sucesso?mock=true')
-      }, 1000)
+        // Redirecionar direto para sucesso (simulação)
+        const checkoutUrl = resultado.preferencia.init_point
+        window.location.href = checkoutUrl
+      }, 1500)
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro no checkout:', error)
-      toast.error('Erro no checkout', 'Tente novamente em alguns instantes')
+      toast.error('Erro no checkout', error.message || 'Tente novamente em alguns instantes')
     } finally {
       setLoading(false)
     }
@@ -505,13 +532,13 @@ export default function CheckoutPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Plano {planoSelecionado.nome}</span>
-                  <span className="line-through text-gray-400">R$ {planoSelecionado.precoOriginal}</span>
+                  <span className="line-through text-gray-400">R\$ {planoSelecionado.precoOriginal}</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Desconto de lançamento</span>
                   <span className="text-green-600 font-medium">
-                    -R$ {planoSelecionado.precoOriginal - planoSelecionado.preco}
+                    -R\$ {planoSelecionado.precoOriginal - planoSelecionado.preco}
                   </span>
                 </div>
                 
@@ -519,7 +546,7 @@ export default function CheckoutPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-gray-900">Total mensal</span>
                     <span className="text-2xl font-bold text-blue-600">
-                      R$ {planoSelecionado.preco}
+                      R\$ {planoSelecionado.preco}
                     </span>
                   </div>
                 </div>

@@ -5,7 +5,12 @@ export async function POST(request: NextRequest) {
   try {
     const dadosCompra: DadosCompra = await request.json()
     
-    console.log('🛒 Processando checkout:', dadosCompra)
+    console.log('🛒 Processando checkout (MODO SIMULAÇÃO):', {
+      cliente: dadosCompra.cliente.nome,
+      empresa: dadosCompra.cliente.nomeEmpresa,
+      plano: dadosCompra.plano.nome,
+      valor: dadosCompra.plano.preco
+    })
     
     // Validar dados obrigatórios
     if (!dadosCompra.cliente.nome || !dadosCompra.cliente.email || !dadosCompra.cliente.nomeEmpresa) {
@@ -21,35 +26,49 @@ export async function POST(request: NextRequest) {
       dadosCompra.cliente.email
     )
     
-    console.log('🔑 Credenciais geradas:', credenciais)
+    console.log('🔑 Credenciais geradas:', {
+      email: credenciais.email,
+      senha: credenciais.senha
+    })
     
-    // Criar preferência no Mercado Pago
+    // Criar preferência (simulada)
     const preferencia = await criarPreferencia(dadosCompra)
     
-    console.log('💳 Preferência criada:', preferencia.id)
+    console.log('💳 Preferência criada (simulada):', preferencia.id)
     
-    // Aqui você salvaria no banco de dados (Firebase)
-    // const clienteData = {
-    //   ...dadosCompra.cliente,
-    //   credenciais,
-    //   plano: dadosCompra.plano,
-    //   status: 'pendente',
-    //   mercadoPagoId: preferencia.id,
-    //   createdAt: new Date().toISOString()
-    // }
+    // Simular salvamento no banco de dados
+    const clienteData = {
+      id: preferencia.id,
+      nome: dadosCompra.cliente.nome,
+      email: dadosCompra.cliente.email,
+      empresa: dadosCompra.cliente.nomeEmpresa,
+      plano: dadosCompra.plano.nome,
+      valor: dadosCompra.plano.preco,
+      credenciais,
+      status: 'pendente',
+      createdAt: new Date().toISOString(),
+      modo: 'SIMULACAO'
+    }
+    
+    console.log('💾 Dados do cliente (simulação):', clienteData)
     
     return NextResponse.json({
       success: true,
       preferencia,
       credenciais,
-      message: 'Checkout processado com sucesso'
+      clienteData,
+      message: 'Checkout processado com sucesso (MODO SIMULAÇÃO)',
+      aviso: 'Este é um pagamento simulado para demonstração'
     })
     
   } catch (error) {
     console.error('❌ Erro no checkout:', error)
     
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { 
+        error: 'Erro interno do servidor',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      },
       { status: 500 }
     )
   }
