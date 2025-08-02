@@ -40,19 +40,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar token JWT
+    // 🆕 ATUALIZAR ÚLTIMO LOGIN
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { ultimoLogin: new Date() }
+    })
+
+    // Criar token JWT (ATUALIZADO com novos campos)
     const token = await new SignJWT({
       userId: user.id,
       email: user.email,
       companyId: user.companyId,
       role: user.role,
-      companyStatus: user.company.status
+      companyStatus: user.company.status,
+      // 🆕 NOVOS CAMPOS
+      primeiroAcesso: user.primeiroAcesso,
+      senhaTemporaria: user.senhaTemporaria
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime('7d')
       .sign(secret)
 
-    // Criar resposta com cookie
+    // Criar resposta com cookie (ATUALIZADA com novos campos)
     const response = NextResponse.json({
       success: true,
       user: {
@@ -60,7 +69,12 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
-        company: user.company.name
+        company: user.company.name,
+        // 🆕 NOVOS CAMPOS PARA CONTROLE DE PRIMEIRO ACESSO
+        primeiroAcesso: user.primeiroAcesso,
+        senhaTemporaria: user.senhaTemporaria,
+        plan: user.company.plan,
+        companyId: user.companyId
       }
     })
 

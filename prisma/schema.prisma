@@ -15,6 +15,12 @@ model User {
   role      String   @default("CLIENT")
   companyId String
   company   Company  @relation(fields: [companyId], references: [id])
+  
+  // NOVOS CAMPOS PARA SISTEMA DE VENDAS
+  primeiroAcesso    Boolean  @default(true)
+  senhaTemporaria   Boolean  @default(false)
+  ultimoLogin       DateTime?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -31,4 +37,153 @@ model Company {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   users       User[]
+  
+  // NOVOS CAMPOS PARA SISTEMA DE VENDAS
+  nomeFantasia     String?
+  cnpj             String?
+  telefone         String?
+  endereco         String?
+  cidade           String?
+  estado           String?
+  cep              String?
+  
+  // Dados da compra/assinatura
+  valorPago        Float?
+  metodoPagamento  String?
+  transacaoId      String?
+  dataCompra       DateTime?
+  
+  // Configurações da empresa
+  logo             String?
+  tema             String   @default("blue")
+  configuracoes    Json?
+  
+  // Relacionamentos existentes
+  produtos         Produto[]
+  vendas           Venda[]
+  fornecedores     Fornecedor[]
+  movimentacoes    Movimentacao[]
+
+  @@map("companies")
+}
+
+// NOVA TABELA PARA DADOS DE CHECKOUT
+model CheckoutData {
+  id              String   @id @default(cuid())
+  
+  // Dados pessoais do comprador
+  nomeComprador   String
+  emailComprador  String
+  telefone        String?
+  cpf             String?
+  
+  // Dados da empresa
+  nomeEmpresa     String
+  emailEmpresa    String
+  cnpj            String?
+  
+  // Dados do plano
+  planoId         String
+  planoNome       String
+  valorPago       Float
+  metodoPagamento String
+  
+  // Status do checkout
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  transacaoId     String?
+  
+  // Credenciais geradas
+  emailLogin      String   @unique
+  senhaTemporaria String
+  
+  // Relacionamento (quando aprovado, vira Company + User)
+  companyId       String?
+  userId          String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("checkout_data")
+}
+
+// Seus modelos existentes (mantidos)
+model Produto {
+  id            String   @id @default(cuid())
+  nome          String
+  descricao     String?
+  preco         Float
+  estoque       Int
+  estoqueMinimo Int      @default(0)
+  categoria     String?
+  codigoBarras  String?
+  ativo         Boolean  @default(true)
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relacionamentos
+  itensVenda       ItemVenda[]
+  movimentacoes    Movimentacao[]
+
+  @@map("produtos")
+}
+
+model Venda {
+  id          String   @id @default(cuid())
+  total       Float
+  desconto    Float    @default(0)
+  observacoes String?
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  itens ItemVenda[]
+
+  @@map("vendas")
+}
+
+model ItemVenda {
+  id        String  @id @default(cuid())
+  quantidade Int
+  precoUnitario Float
+  subtotal  Float
+  vendaId   String
+  venda     Venda   @relation(fields: [vendaId], references: [id])
+  produtoId String
+  produto   Produto @relation(fields: [produtoId], references: [id])
+
+  @@map("itens_venda")
+}
+
+model Fornecedor {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String?
+  telefone  String?
+  cnpj      String?
+  endereco  String?
+  ativo     Boolean  @default(true)
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("fornecedores")
+}
+
+model Movimentacao {
+  id        String   @id @default(cuid())
+  tipo      String   // ENTRADA, SAIDA, AJUSTE
+  quantidade Int
+  observacao String?
+  produtoId String
+  produto   Produto  @relation(fields: [produtoId], references: [id])
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("movimentacoes")
 }
